@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SHEETS_CII, type CIIItem, TOTAL_CII_SUBITEMS } from "./data"
+import { exportCIIExcel, exportCIIPDF } from "@/lib/export-cii"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -840,9 +841,17 @@ export default function CIIAuditPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">รายงานการตรวจสอบ (ตารางที่ ๓)</h2>
-              <button onClick={()=>window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-card/40 text-xs text-muted-foreground hover:text-foreground transition-all">
-                <Printer className="h-3.5 w-3.5"/>พิมพ์
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={()=>exportCIIExcel(SHEETS_CII, findings, meta)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-xs text-emerald-600 hover:bg-emerald-500/20 transition-all font-medium">
+                  <FileSpreadsheet className="h-3.5 w-3.5"/>Excel
+                </button>
+                <button onClick={()=>exportCIIPDF(SHEETS_CII, findings, meta)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-xs text-red-600 hover:bg-red-500/20 transition-all font-medium">
+                  <FileText className="h-3.5 w-3.5"/>PDF
+                </button>
+                <button onClick={()=>window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-card/40 text-xs text-muted-foreground hover:text-foreground transition-all">
+                  <Printer className="h-3.5 w-3.5"/>พิมพ์
+                </button>
+              </div>
             </div>
             <div className="rounded-xl border border-border/60 bg-card/40 divide-y divide-border/30 overflow-hidden">
               <div className="p-5">

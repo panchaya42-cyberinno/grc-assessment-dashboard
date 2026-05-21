@@ -2,6 +2,7 @@ import { SidebarNav } from "@/components/grc/sidebar-nav"
 import { DashboardHeader } from "@/components/grc/dashboard-header"
 import { SummaryCards } from "@/components/grc/summary-cards"
 import { AssessmentTable } from "@/components/grc/assessment-table"
+import { AuditOverview } from "@/components/grc/audit-overview"
 import { Brain, ShieldCheck, TrendingUp } from "lucide-react"
 
 export default function AssessmentDashboard() {
@@ -50,6 +51,7 @@ export default function AssessmentDashboard() {
           </div>
 
           <SummaryCards />
+          <AuditOverview />
           <AssessmentTable />
         </main>
       </div>

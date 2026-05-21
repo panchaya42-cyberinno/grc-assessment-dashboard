@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { CHECKLIST_DOMAINS, getInitialState, type ResultType } from "./data"
 import { cn } from "@/lib/utils"
+import { exportPreAuditExcel, exportPreAuditPDF } from "@/lib/export-preaudit"
 import {
   ClipboardCheck, ChevronDown, ChevronRight, AlertTriangle, XCircle,
   CheckCircle2, FileText, BarChart3, Brain, Printer, RotateCcw,
@@ -323,6 +324,8 @@ NC: ${ncItems.map(i=>`[${i.clause}] ${i.finding||i.question.slice(0,60)}`).join(
           </div>
           <div className="flex items-center gap-2">
             <button onClick={resetAll} className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"><RotateCcw className="h-3.5 w-3.5" />ล้างข้อมูล</button>
+            <button onClick={()=>exportPreAuditExcel(CHECKLIST_DOMAINS, results, meta)} className="flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-600 hover:bg-emerald-500/20 transition-colors font-medium"><FileSpreadsheet className="h-3.5 w-3.5" />Excel</button>
+            <button onClick={()=>exportPreAuditPDF(CHECKLIST_DOMAINS, results, meta)} className="flex items-center gap-1.5 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs text-red-600 hover:bg-red-500/20 transition-colors font-medium"><FileText className="h-3.5 w-3.5" />PDF</button>
             <button onClick={() => window.print()} className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"><Printer className="h-3.5 w-3.5" />พิมพ์</button>
           </div>
         </div>

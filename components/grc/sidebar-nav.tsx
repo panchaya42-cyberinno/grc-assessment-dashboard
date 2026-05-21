@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import {
   LayoutDashboard,
   ClipboardList,
@@ -19,6 +21,8 @@ import {
   ShieldAlert,
   Building2,
   FileCheck,
+  LogOut,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -67,6 +71,24 @@ const navGroups = [
 
 export function SidebarNav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null)
+    })
+  }, [])
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar flex flex-col shadow-sm">
@@ -127,12 +149,34 @@ export function SidebarNav() {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border px-4 py-3">
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
-          <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+      {/* Footer — user info + logout */}
+      <div className="border-t border-sidebar-border px-3 py-3 space-y-2">
+        {/* AI status */}
+        <div className="flex items-center gap-2 px-2 py-1">
+          <div className="h-2 w-2 rounded-full bg-success animate-pulse shrink-0" />
           <span className="text-xs text-muted-foreground">AI Engine Active</span>
         </div>
+
+        {/* User row */}
+        {userEmail && (
+          <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-3 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15">
+              <User className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium text-foreground truncate">{userEmail}</p>
+              <p className="text-[10px] text-muted-foreground">ผู้ใช้งาน</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              title="ออกจากระบบ"
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )
