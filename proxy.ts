@@ -26,8 +26,12 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Allow login page and API routes to pass through
-  if (pathname.startsWith("/login") || pathname.startsWith("/api/")) {
+  // Allow login, auth routes and API routes to pass through
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/")
+  ) {
     return supabaseResponse
   }
 
