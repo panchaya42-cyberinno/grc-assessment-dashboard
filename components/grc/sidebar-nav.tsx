@@ -106,15 +106,7 @@ const navGroups = [
     icon: ICONS.compliance,
     accentColor: C.green,
     accentBg: C.greenBg,
-    items: [
-      { title: "ISO 27001:2022 IA", href: "/pre-audit" },
-      { title: "ISO 27799:2025",   href: "/iso27799" },
-      { title: "PDPA Audit",       href: "/pdpa-audit" },
-      { title: "CRA-NCSA",         href: "/cra-ncsa" },
-      { title: "CII Audit",        href: "/cii-audit" },
-      { title: "ISA/IEC 62443",    href: "/isa-62443" },
-      { title: "Web Security",     href: "/web-security-checklist" },
-    ],
+    items: [] as { title: string; href: string; badge?: { label: string; bg: string; color: string } }[],
   },
   {
     id: "audit",
@@ -123,6 +115,13 @@ const navGroups = [
     accentColor: C.amber,
     accentBg: C.amberBg,
     items: [
+      { title: "ISO 27001:2022 IA", href: "/pre-audit" },
+      { title: "ISO 27799:2025",    href: "/iso27799" },
+      { title: "PDPA Audit",        href: "/pdpa-audit" },
+      { title: "CRA-NCSA",          href: "/cra-ncsa" },
+      { title: "CII Audit",         href: "/cii-audit" },
+      { title: "ISA/IEC 62443",     href: "/isa-62443" },
+      { title: "Web Security",      href: "/web-security-checklist" },
       { title: "Questionnaires",    href: "/questionnaire" },
       { title: "Reports & Results", href: "/result" },
     ],
@@ -177,7 +176,7 @@ export function SidebarNav() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-        {navGroups.map((group) => {
+        {navGroups.filter(g => g.items.length > 0).map((group) => {
           // check if any item in this group is active (for group header highlight)
           const groupActive = group.items.some(item =>
             pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
