@@ -82,7 +82,9 @@ const navGroups = [
     accentColor: C.purple,
     accentBg: C.purpleBg,
     items: [
-      { title: "PDPA Governance", href: "/pdpa" },
+      { title: "Policy Management", href: "/policies",
+        badge: { label: "New", bg: C.purpleBg, color: C.purple } },
+      { title: "PDPA Governance",   href: "/pdpa" },
     ],
   },
   {
