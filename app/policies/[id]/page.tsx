@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
-  loadPolicies, savePolicies, STATUS_CFG, FRAMEWORK_LABELS, CATEGORY_LABELS,
+  loadPolicies, savePolicies, STATUS_CFG, FRAMEWORK_LABELS, CATEGORY_LABELS, DOCUMENT_TYPE_CFG,
   type Policy, type PolicyStatus,
 } from "../data"
 
@@ -212,8 +212,12 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
               <BookOpen className="h-5 w-5 text-purple-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">{policy.id}</span>
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                {(() => { const dtc = DOCUMENT_TYPE_CFG[policy.documentType ?? "policy"]; return (
+                  <span className="rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
+                    style={{ background: dtc.bg, color: dtc.color }}>{dtc.labelEn}</span>
+                )})()}
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">{policy.documentCode ?? policy.id}</span>
                 <span className="text-[10px] text-muted-foreground">v{policy.version}</span>
                 <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold", sc.bg, sc.color)}>
                   <span className={cn("h-1.5 w-1.5 rounded-full", sc.dot)}/>{sc.labelTh}

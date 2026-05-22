@@ -10,38 +10,64 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
-  POLICY_TEMPLATES, FRAMEWORK_LABELS, CATEGORY_LABELS,
+  POLICY_TEMPLATES, FRAMEWORK_LABELS, CATEGORY_LABELS, DOCUMENT_TYPE_CFG, DOMAIN_CODE_MAP,
   loadPolicies, savePolicies,
-  type PolicyCategory, type PolicyTemplate,
+  type PolicyCategory, type PolicyTemplate, type DocumentType,
 } from "../data"
 
 // ─── Template Gallery ──────────────────────────────────────────────────────────
 
 function TemplateGallery({ onSelect }: { onSelect: (t: PolicyTemplate) => void }) {
+  const [activeType, setActiveType] = useState<DocumentType | "all">("all")
+  const types = (["all","policy","procedure","standard","form","announcement"] as (DocumentType|"all")[])
+  const visible = activeType === "all" ? POLICY_TEMPLATES : POLICY_TEMPLATES.filter(t => t.documentType === activeType)
+
   return (
     <div>
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">เลือก Template</p>
+      {/* Type filter tabs */}
+      <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+        {types.map(dt => {
+          const cfg = dt === "all" ? null : DOCUMENT_TYPE_CFG[dt]
+          return (
+            <button key={dt} onClick={() => setActiveType(dt)}
+              className={cn("rounded-full px-3 py-1 text-xs font-medium border transition-all",
+                activeType === dt
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-background border-border text-muted-foreground hover:border-foreground/30"
+              )}>
+              {dt === "all" ? "ทั้งหมด" : `${cfg!.prefix} — ${cfg!.label}`}
+            </button>
+          )
+        })}
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {POLICY_TEMPLATES.map(t => (
-          <button key={t.id} onClick={() => onSelect(t)}
-            className="group rounded-xl border border-dashed border-border p-4 text-left hover:border-purple-300 hover:bg-purple-50/50 transition-all">
-            <div className="text-2xl mb-2">{t.icon}</div>
-            <p className="text-sm font-semibold text-foreground group-hover:text-purple-700 leading-tight">{t.titleTh}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{t.description}</p>
-            <div className="flex flex-wrap gap-1">
-              {t.frameworks.map(fwId => {
-                const fw = FRAMEWORK_LABELS[fwId]; if(!fw) return null
-                return <span key={fwId} className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style={{background:fw.bg,color:fw.color}}>{fw.label}</span>
-              })}
-            </div>
-          </button>
-        ))}
+        {visible.map(t => {
+          const dtc = DOCUMENT_TYPE_CFG[t.documentType]
+          return (
+            <button key={t.id} onClick={() => onSelect(t)}
+              className="group rounded-xl border border-dashed border-border p-4 text-left hover:border-purple-300 hover:bg-purple-50/50 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl">{t.icon}</span>
+                <span className="rounded px-1.5 py-0.5 text-[9.5px] font-bold" style={{background:dtc.bg,color:dtc.color}}>{dtc.prefix}</span>
+              </div>
+              <p className="text-sm font-semibold text-foreground group-hover:text-purple-700 leading-tight">{t.titleTh}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">{t.description}</p>
+              <div className="flex flex-wrap gap-1">
+                {t.frameworks.slice(0,3).map(fwId => {
+                  const fw = FRAMEWORK_LABELS[fwId]; if(!fw) return null
+                  return <span key={fwId} className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style={{background:fw.bg,color:fw.color}}>{fw.label}</span>
+                })}
+              </div>
+            </button>
+          )
+        })}
         {/* Blank */}
-        <button onClick={() => onSelect({ id:"blank", title:"New Policy", titleTh:"นโยบายใหม่", description:"เริ่มจากศูนย์", category:"acceptable-use", frameworks:[], controls:[], icon:"📄", color:"#6B7E96", bg:"rgba(107,126,150,0.08)", content:"# ชื่อนโยบาย\n\n## วัตถุประสงค์\n\n## ขอบเขต\n\n## นโยบาย\n\n## ความรับผิดชอบ\n\n## การทบทวน\n" })}
+        <button onClick={() => onSelect({ id:"blank", title:"New Document", titleTh:"เอกสารใหม่", description:"เริ่มจากศูนย์", documentType:"policy", suggestedDomain:"IS", category:"information-security", frameworks:[], controls:[], icon:"📄", color:"#6B7E96", bg:"rgba(107,126,150,0.08)", content:"# ชื่อเอกสาร\n\n## 1. วัตถุประสงค์ (Purpose)\n\n## 2. ขอบเขต (Scope)\n\n## 3. คำนิยาม (Definitions)\n\n## 4. หน้าที่และความรับผิดชอบ (Roles & Responsibilities)\n\n## 5. เนื้อหาหลัก\n\n## 6. การทบทวนและปรับปรุง\n" })}
           className="group rounded-xl border border-dashed border-border p-4 text-left hover:border-purple-300 hover:bg-purple-50/50 transition-all">
           <div className="text-2xl mb-2">📄</div>
           <p className="text-sm font-semibold text-foreground group-hover:text-purple-700">เริ่มจากศูนย์</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Blank template</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Blank template — ทุกประเภทเอกสาร</p>
         </button>
       </div>
     </div>
@@ -131,23 +157,36 @@ function AIGenerator({ onGenerated }: { onGenerated: (content: string) => void }
 
 type Step = "template" | "editor"
 
+// Generate next document code: POL-IS-003 style
+function nextCode(existing: import("../data").Policy[], prefix: string, domain: string): string {
+  const pattern = new RegExp(`^${prefix}-${domain}-(\\d+)$`)
+  const nums = existing.map(p => { const m = p.documentCode?.match(pattern); return m ? parseInt(m[1]) : 0 })
+  const next = Math.max(0, ...nums) + 1
+  return `${prefix}-${domain}-${String(next).padStart(3,"0")}`
+}
+
 export default function NewPolicyPage() {
   const router = useRouter()
-  const [step, setStep]           = useState<Step>("template")
-  const [title, setTitle]         = useState("")
-  const [titleTh, setTitleTh]     = useState("")
+  const [step, setStep]               = useState<Step>("template")
+  const [docType, setDocType]         = useState<DocumentType>("policy")
+  const [domain, setDomain]           = useState("IS")
+  const [title, setTitle]             = useState("")
+  const [titleTh, setTitleTh]         = useState("")
   const [description, setDescription] = useState("")
-  const [content, setContent]     = useState("")
-  const [category, setCategory]   = useState<PolicyCategory>("access-control")
-  const [owner, setOwner]         = useState("")
-  const [ownerRole, setOwnerRole] = useState("")
-  const [reviewer, setReviewer]   = useState("")
-  const [approver, setApprover]   = useState("")
-  const [frameworks, setFrameworks] = useState<string[]>([])
-  const [controls, setControls]   = useState<string>("")
-  const [scope, setScope]         = useState("ทั้งองค์กร")
-  const [reviewDue, setReviewDue] = useState("")
-  const [saving, setSaving]       = useState(false)
+  const [content, setContent]         = useState("")
+  const [category, setCategory]       = useState<PolicyCategory>("information-security")
+  const [owner, setOwner]             = useState("")
+  const [ownerRole, setOwnerRole]     = useState("")
+  const [reviewer, setReviewer]       = useState("")
+  const [approver, setApprover]       = useState("")
+  const [frameworks, setFrameworks]   = useState<string[]>([])
+  const [controls, setControls]       = useState<string>("")
+  const [scope, setScope]             = useState("ทั้งองค์กร")
+  const [reviewDue, setReviewDue]     = useState("")
+  const [saving, setSaving]           = useState(false)
+
+  const prefix = DOCUMENT_TYPE_CFG[docType]?.prefix ?? "POL"
+  const previewCode = `${prefix}-${domain}-XXX`
 
   function applyTemplate(t: PolicyTemplate) {
     setTitle(t.title)
@@ -156,6 +195,8 @@ export default function NewPolicyPage() {
     setContent(t.content)
     setCategory(t.category)
     setFrameworks(t.frameworks)
+    setDocType(t.documentType)
+    setDomain(t.suggestedDomain ?? "IS")
     setStep("editor")
   }
 
@@ -166,10 +207,11 @@ export default function NewPolicyPage() {
   function saveDraft() {
     setSaving(true)
     const policies = loadPolicies()
-    const newId = `POL-${String(policies.length + 1).padStart(3, "0")}`
+    const documentCode = nextCode(policies, prefix, domain)
     const now = new Date().toISOString().split("T")[0]
     const newPolicy = {
-      id: newId, title, titleTh, description, content, category,
+      id: documentCode, documentCode, documentType: docType,
+      title, titleTh, description, content, category,
       status: "draft" as const, version: "1.0-draft",
       owner, ownerRole, reviewer, approver,
       frameworks, controls: controls.split(",").map(c=>c.trim()).filter(Boolean),
@@ -178,7 +220,7 @@ export default function NewPolicyPage() {
       scope, employees: [], versions: [{ version:"1.0-draft", date:now, author:owner||"System", changes:"Initial draft" }],
     }
     savePolicies([...policies, newPolicy])
-    setTimeout(() => { setSaving(false); router.push(`/policies/${newId}`) }, 500)
+    setTimeout(() => { setSaving(false); router.push(`/policies/${documentCode}`) }, 500)
   }
 
   if (step === "template") {
@@ -277,7 +319,30 @@ export default function NewPolicyPage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">รายละเอียด</p>
 
               <div>
-                <label className="block text-[11px] font-medium text-muted-foreground mb-1">หมวดหมู่</label>
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1">ประเภทเอกสาร</label>
+                <select value={docType} onChange={e=>setDocType(e.target.value as DocumentType)}
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring">
+                  {(Object.entries(DOCUMENT_TYPE_CFG) as [DocumentType, typeof DOCUMENT_TYPE_CFG[DocumentType]][]).map(([dt,cfg]) =>
+                    <option key={dt} value={dt}>{cfg.prefix} — {cfg.label}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1">Domain</label>
+                <select value={domain} onChange={e=>setDomain(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring">
+                  {Object.entries(DOMAIN_CODE_MAP).map(([code,label]) =>
+                    <option key={code} value={code}>{code} — {label}</option>)}
+                </select>
+              </div>
+
+              <div className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">รหัสเอกสารที่จะได้รับ</p>
+                <p className="text-sm font-bold font-mono text-foreground mt-0.5">{previewCode}</p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1">หมวดหมู่ (Domain)</label>
                 <select value={category} onChange={e=>setCategory(e.target.value as PolicyCategory)}
                   className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring">
                   {Object.entries(CATEGORY_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}

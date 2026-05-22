@@ -11,18 +11,18 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
-  loadPolicies, STATUS_CFG, FRAMEWORK_LABELS, CATEGORY_LABELS,
-  type Policy, type PolicyStatus,
+  loadPolicies, STATUS_CFG, FRAMEWORK_LABELS, CATEGORY_LABELS, DOCUMENT_TYPE_CFG,
+  type Policy, type PolicyStatus, type DocumentType,
 } from "./data"
 
 // ─── Stats Bar ────────────────────────────────────────────────────────────────
 
 function StatsBar({ policies }: { policies: Policy[] }) {
-  const total     = policies.length
-  const published = policies.filter(p => p.status === "published").length
-  const inReview  = policies.filter(p => p.status === "in-review").length
+  const total       = policies.length
+  const published   = policies.filter(p => p.status === "published").length
+  const inReview    = policies.filter(p => p.status === "in-review").length
   const needsReview = policies.filter(p => p.status === "needs-review").length
-  const draft     = policies.filter(p => p.status === "draft").length
+  const byType = (t: DocumentType) => policies.filter(p => p.documentType === t).length
 
   // Acknowledgement aggregate
   const totalEmp = policies.filter(p=>p.status==="published").flatMap(p=>p.employees)
@@ -30,24 +30,42 @@ function StatsBar({ policies }: { policies: Policy[] }) {
   const ackPct   = totalEmp.length > 0 ? Math.round((acked.length/totalEmp.length)*100) : 0
 
   return (
-    <div className="grid grid-cols-5 gap-4 mb-6">
-      {[
-        { label:"นโยบายทั้งหมด",     value: total,       icon: FileText,     color:"text-foreground",    bg:"bg-muted/50",        border:"border-border"   },
-        { label:"เผยแพร่แล้ว",        value: published,   icon: CheckCircle2, color:"text-emerald-700",   bg:"bg-emerald-50",      border:"border-emerald-200"},
-        { label:"รอตรวจสอบ",          value: inReview,    icon: Clock,        color:"text-blue-700",      bg:"bg-blue-50",         border:"border-blue-200" },
-        { label:"ต้องทบทวน",          value: needsReview, icon: AlertTriangle, color:"text-red-700",      bg:"bg-red-50",          border:"border-red-200"  },
-        { label:"รับทราบแล้ว",        value:`${ackPct}%`, icon: Users,        color:"text-violet-700",    bg:"bg-violet-50",       border:"border-violet-200"},
-      ].map(s => (
-        <div key={s.label} className={cn("rounded-xl border p-4", s.bg, s.border)}>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className={cn("text-2xl font-bold mt-1", s.color)}>{s.value}</p>
+    <div className="space-y-3 mb-6">
+      {/* Status stats */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label:"เอกสารทั้งหมด",  value: total,       icon: FileText,      color:"text-foreground",    bg:"bg-muted/50",       border:"border-border"    },
+          { label:"เผยแพร่แล้ว",    value: published,   icon: CheckCircle2,  color:"text-emerald-700",   bg:"bg-emerald-50",     border:"border-emerald-200"},
+          { label:"รอตรวจสอบ",      value: inReview,    icon: Clock,         color:"text-blue-700",      bg:"bg-blue-50",        border:"border-blue-200"  },
+          { label:"ต้องทบทวน",      value: needsReview, icon: AlertTriangle,  color:"text-red-700",       bg:"bg-red-50",         border:"border-red-200"   },
+        ].map(s => (
+          <div key={s.label} className={cn("rounded-xl border p-3.5", s.bg, s.border)}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+                <p className={cn("text-2xl font-bold mt-1", s.color)}>{s.value}</p>
+              </div>
+              <s.icon className={cn("h-4.5 w-4.5 mt-0.5", s.color)} />
             </div>
-            <s.icon className={cn("h-5 w-5 mt-0.5", s.color)} />
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      {/* Doc-type breakdown */}
+      <div className="grid grid-cols-5 gap-2">
+        {(["policy","procedure","standard","form","announcement"] as DocumentType[]).map(dt => {
+          const cfg = DOCUMENT_TYPE_CFG[dt]
+          return (
+            <div key={dt} className="rounded-lg border px-3 py-2 flex items-center justify-between"
+              style={{ borderColor: cfg.border, background: cfg.bg }}>
+              <div>
+                <p className="text-[10px] font-semibold" style={{ color: cfg.color }}>{cfg.prefix}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{cfg.label}</p>
+              </div>
+              <span className="text-lg font-bold" style={{ color: cfg.color }}>{byType(dt)}</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -73,8 +91,13 @@ function PolicyCard({ policy }: { policy: Policy }) {
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0 pr-3">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">{policy.id}</span>
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+            {/* Doc type badge */}
+            {(() => { const dtc = DOCUMENT_TYPE_CFG[policy.documentType]; return (
+              <span className="rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
+                style={{ background: dtc.bg, color: dtc.color }}>{dtc.labelEn}</span>
+            )})()}
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">{policy.documentCode}</span>
             <span className="text-[10px] text-muted-foreground">v{policy.version}</span>
           </div>
           <h3 className="text-sm font-semibold text-foreground leading-snug group-hover:text-indigo-600 transition-colors">
@@ -139,20 +162,22 @@ const STATUS_TABS: { id: PolicyStatus | "all"; label: string }[] = [
 ]
 
 export default function PoliciesPage() {
-  const [policies, setPolicies]   = useState<Policy[]>([])
-  const [statusTab, setStatusTab] = useState<PolicyStatus | "all">("all")
-  const [search, setSearch]       = useState("")
-  const [fwFilter, setFwFilter]   = useState("all")
-  const [view, setView]           = useState<"grid" | "list">("grid")
+  const [policies, setPolicies]     = useState<Policy[]>([])
+  const [statusTab, setStatusTab]   = useState<PolicyStatus | "all">("all")
+  const [typeFilter, setTypeFilter] = useState<DocumentType | "all">("all")
+  const [search, setSearch]         = useState("")
+  const [fwFilter, setFwFilter]     = useState("all")
+  const [view, setView]             = useState<"grid" | "list">("grid")
 
   useEffect(() => { setPolicies(loadPolicies()) }, [])
 
   const filtered = policies.filter(p => {
     if (statusTab !== "all" && p.status !== statusTab) return false
+    if (typeFilter !== "all" && p.documentType !== typeFilter) return false
     if (fwFilter !== "all" && !p.frameworks.includes(fwFilter)) return false
     if (search && !p.title.toLowerCase().includes(search.toLowerCase()) &&
         !p.titleTh.toLowerCase().includes(search.toLowerCase()) &&
-        !p.id.toLowerCase().includes(search.toLowerCase())) return false
+        !p.documentCode.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
@@ -226,6 +251,13 @@ export default function PoliciesPage() {
               <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="ค้นหานโยบาย..."
                 className="w-full rounded-lg border border-input bg-background py-2 pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
+
+            <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value as DocumentType | "all")}
+              className="rounded-lg border border-input bg-background px-3 py-2 text-xs text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="all">ประเภท: ทั้งหมด</option>
+              {(Object.entries(DOCUMENT_TYPE_CFG) as [DocumentType, typeof DOCUMENT_TYPE_CFG[DocumentType]][]).map(([dt,cfg]) =>
+                <option key={dt} value={dt}>{cfg.prefix} — {cfg.label}</option>)}
+            </select>
 
             <select value={fwFilter} onChange={e=>setFwFilter(e.target.value)}
               className="rounded-lg border border-input bg-background px-3 py-2 text-xs text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
