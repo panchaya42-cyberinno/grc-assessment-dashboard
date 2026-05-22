@@ -38,7 +38,8 @@ const navGroups = [
     label: "AI Governance",
     dotColor: C.purple,
     items: [
-      { title: "Risk Assessment", href: "/ai-risk" },
+      { title: "Risk Assessment",  href: "/ai-risk" },
+      { title: "PDPA Governance", href: "/pdpa"    },
     ],
   },
   {
@@ -59,7 +60,6 @@ const navGroups = [
     items: [
       { title: "ISO 27001:2022 IA",  href: "/pre-audit" },
       { title: "ISO 27799:2025",     href: "/iso27799" },
-      { title: "PDPA Governance",    href: "/pdpa" },
       { title: "CII Audit",          href: "/cii-audit" },
       { title: "ISA/IEC 62443",      href: "/isa-62443" },
       { title: "Web Security",       href: "/web-security-checklist" },
