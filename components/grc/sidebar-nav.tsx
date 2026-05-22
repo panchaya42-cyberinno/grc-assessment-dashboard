@@ -4,108 +4,76 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { LogOut, User, Sparkles, Settings } from "lucide-react"
+import { LogOut, User, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// ── Color identities ─────────────────────────────────────────
+// Governance = Indigo  |  Risk = Amber  |  Compliance = Green
+// ─────────────────────────────────────────────────────────────
 
 const navGroups = [
   {
     label: "Overview",
+    color: "sky",
     items: [
-      {
-        title: "Dashboard",
-        href: "/",
-        dot: "bg-teal-400",
-      },
-      {
-        title: "AI Advisory",
-        href: "/advisory",
-        dot: "bg-blue-400",
-        badge: { label: "AI", color: "bg-blue-500/15 text-blue-400" },
-      },
+      { title: "Dashboard",    href: "/",         dot: "bg-sky-500" },
+      { title: "AI Advisory",  href: "/advisory", dot: "bg-sky-400",
+        badge: { label: "AI", cls: "bg-sky-100 text-sky-700" } },
     ],
   },
   {
-    label: "AI Governance",
+    label: "Governance",
+    color: "indigo",
+    labelCls: "text-indigo-600",
+    borderCls: "border-indigo-300",
     items: [
-      {
-        title: "AI Risk Assessment",
-        href: "/ai-risk",
-        dot: "bg-violet-400",
-      },
+      { title: "Risk Assessment", href: "/ai-risk", dot: "bg-indigo-500" },
     ],
   },
   {
-    label: "AI Risk",
+    label: "Risk",
+    color: "amber",
+    labelCls: "text-amber-600",
+    borderCls: "border-amber-300",
     items: [
-      {
-        title: "Asset Risk",
-        href: "/asset-risk",
-        dot: "bg-rose-400",
-      },
-      {
-        title: "KRI Dashboard",
-        href: "/kri-dashboard",
-        dot: "bg-rose-400",
-      },
-      {
-        title: "CRA — NCSA",
-        href: "/cra-ncsa",
-        dot: "bg-rose-400",
-      },
-      {
-        title: "OT / ICS Security",
-        href: "/ot-security",
-        dot: "bg-rose-400",
-      },
-      {
-        title: "Threat Intelligence",
-        href: "/threat-intel",
-        dot: "bg-rose-400",
-        badge: { label: "3", color: "bg-rose-500/15 text-rose-400" },
-      },
+      { title: "Asset Risk",         href: "/asset-risk",   dot: "bg-amber-500" },
+      { title: "KRI Dashboard",      href: "/kri-dashboard",dot: "bg-amber-500" },
+      { title: "CRA — NCSA",         href: "/cra-ncsa",     dot: "bg-amber-500" },
+      { title: "OT / ICS Security",  href: "/ot-security",  dot: "bg-amber-500" },
+      { title: "Threat Intelligence",href: "/threat-intel", dot: "bg-amber-500",
+        badge: { label: "3", cls: "bg-amber-100 text-amber-700" } },
     ],
   },
   {
-    label: "AI Compliance",
+    label: "Compliance",
+    color: "green",
+    labelCls: "text-green-700",
+    borderCls: "border-green-300",
     items: [
-      {
-        title: "Pre-Internal Audit",
-        href: "/pre-audit",
-        dot: "bg-teal-400",
-      },
-      {
-        title: "CII Audit",
-        href: "/cii-audit",
-        dot: "bg-teal-400",
-      },
-      {
-        title: "ISA/IEC 62443",
-        href: "/isa-62443",
-        dot: "bg-teal-400",
-      },
-      {
-        title: "Web Security",
-        href: "/web-security-checklist",
-        dot: "bg-teal-400",
-      },
+      { title: "Pre-Internal Audit",  href: "/pre-audit",              dot: "bg-green-600" },
+      { title: "CII Audit",           href: "/cii-audit",              dot: "bg-green-600" },
+      { title: "ISA/IEC 62443",       href: "/isa-62443",              dot: "bg-green-600" },
+      { title: "Web Security",        href: "/web-security-checklist", dot: "bg-green-600" },
     ],
   },
   {
     label: "Assessments",
+    color: "slate",
     items: [
-      {
-        title: "Questionnaires",
-        href: "/questionnaire",
-        dot: "bg-amber-400",
-      },
-      {
-        title: "Reports & Results",
-        href: "/result",
-        dot: "bg-amber-400",
-      },
+      { title: "Questionnaires",   href: "/questionnaire", dot: "bg-slate-400" },
+      { title: "Reports & Results",href: "/result",        dot: "bg-slate-400" },
     ],
   },
 ]
+
+// Active color per group
+const activeColors: Record<string, string> = {
+  sky:    "bg-sky-50    text-sky-700    border-l-sky-500",
+  indigo: "bg-indigo-50 text-indigo-700 border-l-indigo-500",
+  amber:  "bg-amber-50  text-amber-700  border-l-amber-500",
+  green:  "bg-green-50  text-green-700  border-l-green-600",
+  slate:  "bg-slate-100 text-slate-700  border-l-slate-400",
+}
 
 export function SidebarNav() {
   const pathname = usePathname()
@@ -129,15 +97,17 @@ export function SidebarNav() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-56 border-r border-sidebar-border bg-sidebar flex flex-col shadow-sm">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-56 border-r border-border bg-white flex flex-col shadow-sm">
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 ring-1 ring-primary/40">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
+      <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
+          <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
         </div>
         <div className="flex flex-col leading-tight">
-          <span className="text-[12px] font-bold text-primary tracking-wide">CyberInno</span>
-          <span className="text-[10px] text-muted-foreground tracking-wider uppercase">AI GRC Platform</span>
+          <span className="text-[13px] font-bold text-gray-900 tracking-tight">CyberInno</span>
+          <span className="text-[9.5px] text-gray-400 tracking-widest uppercase">GRC Platform</span>
         </div>
       </div>
 
@@ -145,10 +115,25 @@ export function SidebarNav() {
       <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4">
         {navGroups.map((group) => (
           <div key={group.label}>
-            {/* Section label */}
-            <p className="mb-1 px-2 text-[9.5px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
-              {group.label}
-            </p>
+            {/* Section label with colored left accent */}
+            <div className={cn(
+              "flex items-center gap-1.5 mb-1 px-2",
+            )}>
+              <div className={cn(
+                "h-3 w-[2.5px] rounded-full",
+                group.color === "indigo" && "bg-indigo-500",
+                group.color === "amber"  && "bg-amber-500",
+                group.color === "green"  && "bg-green-600",
+                group.color === "sky"    && "bg-sky-500",
+                group.color === "slate"  && "bg-slate-400",
+              )} />
+              <p className={cn(
+                "text-[9.5px] font-bold tracking-widest uppercase",
+                group.labelCls ?? "text-gray-400",
+              )}>
+                {group.label}
+              </p>
+            </div>
 
             <div className="space-y-0.5">
               {group.items.map((item) => {
@@ -156,27 +141,24 @@ export function SidebarNav() {
                   pathname === item.href ||
                   (item.href !== "/" && pathname.startsWith(item.href))
 
+                const activeCls = activeColors[group.color]
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-all duration-150",
+                      "relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-all duration-150 border-l-2",
                       isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        ? activeCls
+                        : "border-l-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                     )}
                   >
-                    {/* Active left bar */}
-                    {isActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-primary" />
-                    )}
-
                     {/* Colored dot */}
                     <span className={cn(
-                      "h-[7px] w-[7px] rounded-full shrink-0",
+                      "h-[6px] w-[6px] rounded-full shrink-0",
                       item.dot,
-                      !isActive && "opacity-50"
+                      !isActive && "opacity-40"
                     )} />
 
                     <span className="flex-1 truncate">{item.title}</span>
@@ -184,8 +166,8 @@ export function SidebarNav() {
                     {/* Badge */}
                     {"badge" in item && item.badge && (
                       <span className={cn(
-                        "text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none shrink-0",
-                        item.badge.color
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none shrink-0",
+                        item.badge.cls
                       )}>
                         {item.badge.label}
                       </span>
@@ -199,42 +181,41 @@ export function SidebarNav() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border px-2.5 py-3 space-y-2">
-        {/* Settings */}
+      <div className="border-t border-border px-2.5 py-3 space-y-1.5">
         <Link
           href="/settings"
           className={cn(
             "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-all",
             pathname === "/settings"
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              ? "bg-gray-100 text-gray-800"
+              : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"
           )}
         >
           <Settings className="h-3.5 w-3.5 shrink-0" />
-          ตั้งค่า
+          Settings
         </Link>
 
         {/* AI status */}
-        <div className="flex items-center gap-2 px-2 py-1">
-          <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse shrink-0" />
-          <span className="text-[11px] text-muted-foreground">AI Engine Active</span>
+        <div className="flex items-center gap-2 px-2 py-0.5">
+          <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
+          <span className="text-[11px] text-gray-400">AI Engine Active</span>
         </div>
 
         {/* User row */}
         {userEmail && (
-          <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-2.5 py-2">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15">
-              <User className="h-3 w-3 text-primary" />
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100">
+              <User className="h-3 w-3 text-indigo-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium text-foreground truncate">{userEmail}</p>
-              <p className="text-[10px] text-muted-foreground">ผู้ใช้งาน</p>
+              <p className="text-[11px] font-medium text-gray-700 truncate">{userEmail}</p>
+              <p className="text-[10px] text-gray-400">ผู้ใช้งาน</p>
             </div>
             <button
               onClick={handleSignOut}
               disabled={signingOut}
               title="ออกจากระบบ"
-              className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              className="shrink-0 rounded-md p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
             >
               <LogOut className="h-3 w-3" />
             </button>
