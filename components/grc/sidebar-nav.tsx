@@ -106,7 +106,12 @@ const navGroups = [
     icon: ICONS.compliance,
     accentColor: C.green,
     accentBg: C.greenBg,
-    items: [] as { title: string; href: string; badge?: { label: string; bg: string; color: string } }[],
+    items: [
+      { title: "Frameworks & Standards", href: "/frameworks" },
+      { title: "Control Mapping",        href: "/controls"   },
+      { title: "Evidence Collection",    href: "/evidence",
+        badge: { label: "Auto", bg: "rgba(34,197,94,0.15)", color: "#16A34A" } },
+    ],
   },
   {
     id: "audit",
