@@ -9,7 +9,7 @@ export default function AssessmentDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-64">
+      <div className="ml-56">
         <DashboardHeader userName="คุณสมชาย" />
         <main className="p-6 space-y-6">
           {/* Hero banner */}

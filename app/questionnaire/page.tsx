@@ -330,7 +330,7 @@ export default function AssessmentsPage() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="pl-64">
+      <div className="pl-56">
         <DashboardHeader />
         <main className="p-6">
           <div className="mb-6">

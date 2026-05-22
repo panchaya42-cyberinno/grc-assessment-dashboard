@@ -278,7 +278,7 @@ function AssetAssessmentContent() {
     return (
       <div className="flex min-h-screen bg-background">
         <SidebarNav />
-        <main className="flex-1 ml-64 p-8">
+        <main className="flex-1 ml-56 p-8">
           <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -624,7 +624,7 @@ function AssetAssessmentContent() {
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
       
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 ml-56 p-8">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

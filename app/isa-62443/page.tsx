@@ -179,7 +179,7 @@ export default function ISA62443Page() {
     return (
       <div className="min-h-screen bg-background">
         <SidebarNav />
-        <div className="ml-64 flex flex-col min-h-screen">
+        <div className="ml-56 flex flex-col min-h-screen">
           <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-sm px-6 py-3 flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/30">
               <ShieldAlert className="h-4 w-4 text-primary" />
@@ -243,7 +243,7 @@ export default function ISA62443Page() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-64 flex flex-col min-h-screen">
+      <div className="ml-56 flex flex-col min-h-screen">
 
         {/* ── Header ── */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-sm px-6 py-3 flex items-center justify-between">

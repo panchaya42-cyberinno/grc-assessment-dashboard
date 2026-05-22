@@ -425,7 +425,7 @@ export default function UseCaseDetailPage({ params }: { params: Promise<{ id: st
     return (
       <div className="min-h-screen bg-background">
         <SidebarNav />
-        <main className="ml-64 p-6 flex items-center justify-center min-h-screen">
+        <main className="ml-56 p-6 flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
       </div>
@@ -436,7 +436,7 @@ export default function UseCaseDetailPage({ params }: { params: Promise<{ id: st
     return (
       <div className="min-h-screen bg-background">
         <SidebarNav />
-        <main className="ml-64 p-6">
+        <main className="ml-56 p-6">
           <p className="text-muted-foreground">ไม่พบข้อมูล Use Case</p>
         </main>
       </div>
@@ -448,7 +448,7 @@ export default function UseCaseDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <main className="ml-64 p-6">
+      <main className="ml-56 p-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => router.push('/ai-risk/use-cases')}>

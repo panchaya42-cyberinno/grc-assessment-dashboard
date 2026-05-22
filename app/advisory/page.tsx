@@ -325,7 +325,7 @@ export default function AdvisoryPage() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-64 flex flex-col h-screen">
+      <div className="ml-56 flex flex-col h-screen">
 
         {/* ── Header ── */}
         <header className="border-b border-border bg-background/80 backdrop-blur-sm px-6 py-3 flex items-center justify-between shrink-0">
