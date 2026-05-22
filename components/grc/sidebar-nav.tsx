@@ -60,6 +60,7 @@ const navGroups = [
     items: [
       { title: "ISO 27001:2022 IA",  href: "/pre-audit" },
       { title: "ISO 27799:2025",     href: "/iso27799" },
+      { title: "PDPA Audit",         href: "/pdpa-audit" },
       { title: "CII Audit",          href: "/cii-audit" },
       { title: "ISA/IEC 62443",      href: "/isa-62443" },
       { title: "Web Security",       href: "/web-security-checklist" },
