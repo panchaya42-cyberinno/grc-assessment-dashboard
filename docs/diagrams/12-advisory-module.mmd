@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant U as User
+    participant P as /advisory (page.tsx)
+    participant H as /advisory/[id] (history)
+    participant A as api/advisory/chat
+    participant C as Claude API
+
+    U->>P: พิมพ์คำถาม GRC
+    P->>A: POST { message, history[] }
+    A->>C: messages.create() streaming
+    Note over A,C: model: claude-sonnet-4-5
+    C-->>A: stream chunks
+    A-->>P: Server-Sent Events
+    P->>U: แสดงข้อความแบบ real-time
+
+    U->>H: ดูประวัติการสนทนา
+    H->>U: รายการ sessions ที่ผ่านมา

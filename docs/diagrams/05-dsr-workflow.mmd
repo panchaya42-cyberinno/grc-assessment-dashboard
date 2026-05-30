@@ -1,0 +1,20 @@
+stateDiagram-v2
+    [*] --> new : รับคำขอใหม่\n(DPO/Legal)
+
+    new --> in_progress : มอบหมายงาน\nผู้ดำเนินการ
+
+    in_progress --> pending_info : ผู้ดำเนินการ\nส่งกลับ
+
+    pending_info --> in_progress : DPO ส่งข้อมูลเพิ่ม\nมอบหมายใหม่
+
+    in_progress --> overdue : เกินกำหนด 30 วัน\n(auto-detect)
+
+    in_progress --> completed : DPO ปิดคำขอ\nสำเร็จ
+
+    in_progress --> rejected : DPO ปฏิเสธ\nพร้อมเหตุผล
+
+    overdue --> completed : ดำเนินการล่าช้า\nปิดได้
+    overdue --> rejected : ปฏิเสธ
+
+    completed --> [*]
+    rejected --> [*]

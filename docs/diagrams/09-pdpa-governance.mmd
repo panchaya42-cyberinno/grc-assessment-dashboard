@@ -1,0 +1,20 @@
+graph TD
+    Hub["app/pdpa/page.tsx\n1,389 lines\nHub with tabs"]
+
+    Hub --> DSR["dsr-manager.tsx\nDSR Workflow\n7 request types"]
+    Hub --> Consent["consent-manager.tsx\nConsent Management\n+ integrations"]
+    Hub --> ROPA["ropa-manager.tsx\nRecord of Processing\nActivities"]
+    Hub --> DPIA["dpia-manager.tsx\nData Protection\nImpact Assessment"]
+    Hub --> Breach["breach-manager.tsx\nData Breach\nNotification"]
+
+    DSR --> DSRSub["_dsr/ (10 sub-files)\ntypes, config, helpers\n7 modal/panel components"]
+
+    Consent --> ConAPI["api/consent/\nscan / sync / webhook"]
+    ROPA --> PDPAdata["pdpa/data.ts\nStatic data + templates"]
+    DPIA --> PDPAdata
+    Breach --> PDPAdata
+    Hub --> Templates["pdpa/templates.ts\nDocument templates"]
+    Hub --> PDPAAnalyze["api/pdpa/analyze\nPOST — Claude\nPDPA compliance analysis"]
+
+    style Hub fill:#e0e7ff
+    style DSRSub fill:#f0fdf4

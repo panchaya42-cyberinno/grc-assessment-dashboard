@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant U as User (Browser)
+    participant P as Next.js Page
+    participant A as API Route (Server)
+    participant C as Claude API
+
+    U->>P: กรอกข้อมูล / กดปุ่ม AI
+    P->>A: POST /api/module/action<br/>{ body: formData }
+    Note over A: ANTHROPIC_API_KEY<br/>อยู่ฝั่ง server เท่านั้น
+    A->>C: client.messages.create()<br/>{ model, max_tokens, messages }
+    C-->>A: { content: [{ text }] }
+    A-->>P: { result: "..." }
+    P->>U: แสดงผล AI response

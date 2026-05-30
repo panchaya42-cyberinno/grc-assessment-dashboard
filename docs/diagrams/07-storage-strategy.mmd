@@ -1,0 +1,14 @@
+graph LR
+    subgraph Now["🟡 ปัจจุบัน Prototype"]
+        direction TB
+        A1["Browser\nlocalStorage"] -->|"load/persist"| A2["Module State\nuseState"]
+        A3["Supabase"] -->|"Auth only"| A4["Session\ncookie"]
+    end
+
+    subgraph Target["🟢 เป้าหมาย Production"]
+        direction TB
+        B1["Supabase DB\nmulti-tenant"] -->|"select/insert/update"| B2["Module State\nuseState"]
+        B3["Supabase"] -->|"Auth + RLS"| B4["Session + Roles\nDPO / Operator / Admin"]
+    end
+
+    Now -->|"migrate"| Target

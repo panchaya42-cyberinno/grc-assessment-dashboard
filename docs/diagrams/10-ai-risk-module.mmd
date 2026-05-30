@@ -1,0 +1,27 @@
+graph LR
+    subgraph Pages["📄 app/ai-risk/"]
+        Index["page.tsx\nDashboard overview\nrisk summary cards"]
+        UC["use-cases/page.tsx\nAll use cases list\nfilter + search"]
+        UCNew["use-cases/new/page.tsx\nRegister new AI use case\nmulti-step form"]
+        UCDetail["use-cases/[id]/page.tsx\nUse case detail\n+ edit"]
+        Assess["assessment/page.tsx\nRisk scoring\nheatmap"]
+        Classify["classification/page.tsx\nClassify by\nNIST AI RMF / ISO 42001"]
+        Exec["executive/page.tsx\nExecutive dashboard\ncharts + KPIs"]
+        Demo["demo/page.tsx\nDemo mode\nsample data"]
+    end
+
+    subgraph Storage["💾 Data"]
+        LS["localStorage\nai_risk_classifications"]
+    end
+
+    Index --> UC --> UCNew
+    UC --> UCDetail
+    Index --> Assess
+    Index --> Classify
+    Index --> Exec
+    Index --> Demo
+
+    UCNew -->|"persist"| LS
+    Assess -->|"read"| LS
+    Classify -->|"read/write"| LS
+    Exec -->|"read"| LS

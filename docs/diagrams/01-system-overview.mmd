@@ -1,0 +1,24 @@
+graph TB
+    subgraph Browser["🖥️ Browser (Client)"]
+        UI["Next.js Pages\n/pdpa, /cyber-drill,\n/ai-risk, /pre-audit ..."]
+        LS["localStorage\n(operational data)"]
+        UI <-->|"load / persist"| LS
+    end
+
+    subgraph NextJS["⚙️ Next.js Server (Vercel)"]
+        Pages["App Router\napp/**/page.tsx"]
+        API["API Routes\napp/api/**/route.ts"]
+    end
+
+    subgraph External["☁️ External Services"]
+        Claude["Anthropic Claude API\nclaude-sonnet-4-5\n(AI features)"]
+        Supabase["Supabase\n(Auth + future DB)"]
+    end
+
+    UI -->|"fetch POST"| API
+    API -->|"@anthropic-ai/sdk"| Claude
+    Claude -->|"JSON response"| API
+    API -->|"JSON"| UI
+
+    UI -->|"@supabase/ssr (browser)"| Supabase
+    Pages -->|"@supabase/ssr (server)"| Supabase

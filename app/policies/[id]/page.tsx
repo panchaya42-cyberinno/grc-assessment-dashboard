@@ -7,7 +7,7 @@ import { SidebarNav } from "@/components/grc/sidebar-nav"
 import {
   ArrowLeft, CheckCircle2, Clock, AlertTriangle, Users, Send,
   FileText, History, Layers, ChevronRight, Edit3, Bell,
-  Download, Printer, User, Calendar, Shield, BookOpen,
+  Download, Printer, User, Calendar, Shield, BookOpen, Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
@@ -16,6 +16,7 @@ import {
   loadPolicies, savePolicies, STATUS_CFG, FRAMEWORK_LABELS, CATEGORY_LABELS, DOCUMENT_TYPE_CFG,
   type Policy, type PolicyStatus,
 } from "../data"
+import { PolicyAIPanel } from "@/components/grc/policy-ai-panel"
 
 // ─── Workflow Steps ────────────────────────────────────────────────────────────
 
@@ -164,6 +165,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   const [tab, setTab]           = useState<Tab>("content")
   const [reminderSent, setReminderSent] = useState(false)
   const [advancing, setAdvancing]       = useState(false)
+  const [aiOpen, setAiOpen]             = useState(false)
 
   useEffect(() => {
     const all = loadPolicies()
@@ -201,7 +203,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-56">
+      <div className={cn("ml-56 transition-all duration-300", aiOpen ? "mr-[420px]" : "mr-0")}>
         {/* Header */}
         <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center gap-3 mb-4">
@@ -227,6 +229,19 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
               <p className="text-xs text-muted-foreground">{policy.title}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {/* AI Customizer button */}
+              <button
+                onClick={() => setAiOpen(o => !o)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                  aiOpen
+                    ? "bg-teal-500 text-black shadow-lg shadow-teal-500/20"
+                    : "border border-teal-500/40 text-teal-600 hover:bg-teal-50"
+                )}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {aiOpen ? "ปิด AI" : "✨ ปรับด้วย AI"}
+              </button>
               <Link href={`/policies/${policy.id}/edit`}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors">
                 <Edit3 className="h-3.5 w-3.5" /> แก้ไข
@@ -458,6 +473,37 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      {/* AI Customizer Panel */}
+      {aiOpen && (
+        <PolicyAIPanel
+          policyTitle={`${policy.titleTh} (${policy.documentCode})`}
+          policyContent={policy.content}
+          onClose={() => setAiOpen(false)}
+          onApply={async (aiContent) => {
+            // Save AI-generated content directly to the policy
+            const all = loadPolicies()
+            const now = new Date().toISOString().split("T")[0]
+            const cur = all.find(p => p.id === policy.id)
+            if (!cur) return
+            const parts = cur.version.replace("-draft","").split(".")
+            const newVer = `${parts[0]}.${(parseInt(parts[1]??0)+1)}`
+            const updated = {
+              ...cur,
+              content: aiContent.trim(),
+              version: newVer,
+              updatedAt: now,
+              versions: [...cur.versions, {
+                version: newVer, date: now,
+                author: "AI Customizer", changes: "ปรับแต่งด้วย AI Policy Customizer",
+              }],
+            }
+            savePolicies(all.map(p => p.id === policy.id ? updated : p))
+            setPolicy(updated)
+            setAiOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

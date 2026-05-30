@@ -1,0 +1,60 @@
+graph TD
+    Root["📁 grc-assessment-dashboard/\n(project root)"]
+
+    Root --> Comp["📁 components/"]
+    Root --> Lib["📁 lib/"]
+    Root --> Const["📁 constants/"]
+    Root --> Types["📁 types/"]
+    Root --> Hooks["📁 hooks/"]
+    Root --> Supa["📁 supabase/"]
+    Root --> Docs["📁 docs/"]
+    Root --> Config["⚙️ Config Files"]
+
+    Comp --> GRC["📁 grc/\nShared GRC components"]
+    Comp --> UI["📁 ui/\nshadcn/ui primitives\n⚠️ อย่าแก้โดยตรง"]
+
+    GRC --> G1["sidebar-nav.tsx\n← เพิ่ม module ใหม่ที่นี่"]
+    GRC --> G2["dashboard-header.tsx"]
+    GRC --> G3["assessment-table.tsx"]
+    GRC --> G4["audit-overview.tsx"]
+    GRC --> G5["category-overview.tsx"]
+    GRC --> G6["policy-ai-panel.tsx"]
+    GRC --> G7["summary-cards.tsx"]
+
+    Lib --> L1["utils.ts\ncn() — Tailwind class merge"]
+    Lib --> L2["api-client.ts\nTyped fetch wrapper"]
+    Lib --> L3["export-cii.ts\nExcel export — CII Audit"]
+    Lib --> L4["export-preaudit.ts\nExcel export — ISO 27001"]
+    Lib --> L5["📁 supabase/\nclient.ts (browser)\nserver.ts (server)"]
+
+    Const --> C1["storage-keys.ts\nlocalStorage key registry\nใช้แทน string literal"]
+    Const --> C2["dsr.ts — DSR config"]
+    Const --> C3["cyber-drill.ts — Drill config"]
+    Const --> C4["index.ts — barrel export"]
+
+    Types --> T1["index.ts\nShared TypeScript types\nDSRRecord, DrillScenario ..."]
+
+    Hooks --> H1["use-local-storage.ts\nGeneric localStorage hook"]
+    Hooks --> H2["use-mobile.ts\nMobile breakpoint"]
+
+    Supa --> S1["📁 migrations/\n001_initial_schema.sql"]
+
+    Docs --> D1["architecture.md\nMermaid diagrams source"]
+    Docs --> D2["📁 diagrams/\n16 PNG diagram files"]
+    Docs --> D3["pilot-agreement.md"]
+
+    Config --> CF1["package.json\npnpm-lock.yaml"]
+    Config --> CF2["next.config.mjs"]
+    Config --> CF3["tsconfig.json"]
+    Config --> CF4[".env.example\n← template for dev team"]
+    Config --> CF5["README.md\nHANDOFF.md"]
+
+    style Root fill:#6366f1,color:#fff
+    style Comp fill:#e0e7ff
+    style Lib fill:#f0fdf4
+    style Const fill:#fdf2f8
+    style Types fill:#fef3c7
+    style Hooks fill:#ecfdf5
+    style UI fill:#fee2e2
+    style G1 fill:#fef3c7
+    style CF4 fill:#fef3c7

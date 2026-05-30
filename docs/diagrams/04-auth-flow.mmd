@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant U as User
+    participant P as /login page
+    participant SB as Supabase Auth
+    participant APP as Protected Pages
+
+    U->>P: กรอก email + password
+    P->>SB: signInWithPassword()
+    SB-->>P: session token (cookie)
+    P->>U: redirect → /
+
+    U->>APP: เข้าหน้าที่ต้องการ auth
+    APP->>SB: getUser() ตรวจ session
+    SB-->>APP: user object หรือ null
+    APP->>U: แสดงหน้า หรือ redirect /login

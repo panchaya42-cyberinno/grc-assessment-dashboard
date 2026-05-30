@@ -1,0 +1,18 @@
+graph TD
+    subgraph Pages["📄 app/questionnaire/"]
+        Index["page.tsx\nQuestionnaire catalog\nSelect template"]
+        AIGov["ai-governance/page.tsx\nAI Governance Assessment\nISO 42001 aligned"]
+        CyberHyg["cyber-hygiene/page.tsx\n1,015 lines\nCyber Hygiene checklist\nNCSA/NIST aligned"]
+        Custom["[id]/page.tsx\nCustom questionnaire\ndynamic questions"]
+    end
+
+    subgraph Output["📤 Output"]
+        Score["Maturity Score\nper category"]
+        Report["Summary Report\ngaps + recommendations"]
+        Result["→ /result\nSave & view later"]
+    end
+
+    Index --> AIGov & CyberHyg & Custom
+    AIGov --> Score --> Report --> Result
+    CyberHyg --> Score
+    Custom --> Score

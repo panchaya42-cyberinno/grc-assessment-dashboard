@@ -1,0 +1,17 @@
+graph LR
+    subgraph Pages["📄 app/asset-risk/"]
+        List["page.tsx\n1,523 lines\nAsset registry\nRisk matrix heatmap\nFilter + search"]
+        Assess["assess/page.tsx\n987 lines\nRisk assessment form\nLikelihood x Impact\nControl effectiveness"]
+    end
+
+    subgraph Concepts["📊 Key Concepts"]
+        Matrix["Risk Matrix\n5x5 grid\nLikelihood × Impact"]
+        Score["Risk Score\n= Likelihood × Impact\n× Control factor"]
+        Heat["Heatmap\nRed/Amber/Green\nby asset category"]
+    end
+
+    List -->|"Assess asset"| Assess
+    Assess -->|"Calculate"| Score
+    Score --> Matrix
+    Matrix --> Heat
+    Heat --> List

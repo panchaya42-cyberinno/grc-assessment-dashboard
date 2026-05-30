@@ -1,0 +1,40 @@
+graph TD
+    Root["grc-assessment-dashboard/"]
+
+    Root --> App["app/"]
+    Root --> Components["components/"]
+    Root --> Lib["lib/"]
+    Root --> Constants["constants/"]
+    Root --> Types["types/"]
+    Root --> Hooks["hooks/"]
+    Root --> Supabase["supabase/"]
+    Root --> Docs["docs/"]
+
+    App --> AppPages["22 module pages\n/pdpa /cyber-drill /ai-risk\n/pre-audit /iso27799 ..."]
+    App --> APIDIR["api/ (13 routes)\nadvisory, consent, cyber-drill\niso27799, pdpa, pdpa-audit\npolicy-ai, pre-audit, cii-audit"]
+
+    Components --> GRC["grc/\nsidebar-nav.tsx\ndashboard-header.tsx\nassessment-table.tsx\naudit-overview.tsx\ncategory-overview.tsx\npolicy-ai-panel.tsx\nsummary-cards.tsx"]
+    Components --> UI["ui/\nshadcn components\n(อย่าแก้ตรงๆ)"]
+
+    Lib --> UtilsFile["utils.ts — cn()"]
+    Lib --> APIClient["api-client.ts\nTyped fetch wrapper"]
+    Lib --> ExportCII["export-cii.ts\nExcel export"]
+    Lib --> ExportAudit["export-preaudit.ts\nExcel export"]
+    Lib --> SupabaseDir["supabase/\nclient.ts (browser)\nserver.ts (server)"]
+
+    Constants --> StorageKeys["storage-keys.ts\nlocalStorage key registry"]
+    Constants --> DSRConst["dsr.ts"]
+    Constants --> DrillConst["cyber-drill.ts"]
+
+    Types --> TypesIndex["index.ts\nShared interfaces"]
+    Hooks --> LSHook["use-local-storage.ts"]
+    Hooks --> MobileHook["use-mobile.ts"]
+
+    Supabase --> Migrations["migrations/\n001_initial_schema.sql"]
+    Docs --> ArchMD["architecture.md"]
+    Docs --> DiagramsDir["diagrams/ (PNG files)"]
+
+    style App fill:#e0e7ff
+    style Components fill:#fef3c7
+    style Lib fill:#f0fdf4
+    style Constants fill:#fdf2f8

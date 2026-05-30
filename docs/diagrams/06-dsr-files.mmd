@@ -1,0 +1,21 @@
+graph TD
+    PM["app/pdpa/page.tsx\nHub tabs"]
+    DM["dsr-manager.tsx\n730 lines\nDSRManager component"]
+
+    PM --> DM
+
+    DM --> T["_dsr/dsr-types.ts\nTypeScript interfaces"]
+    DM --> C["_dsr/dsr-config.ts\nLabels, colors, demo data"]
+    DM --> H["_dsr/dsr-helpers.ts\nload/persist, date utils"]
+    DM --> Modal["_dsr/DSRModal.tsx\n4-tab form modal"]
+    DM --> Assign["_dsr/AssignModal.tsx\nDPO to operator"]
+    DM --> Report["_dsr/OperatorReportModal.tsx\nOperator to DPO"]
+    DM --> Evid["_dsr/EvidencePanel.tsx\nFile/note/link upload"]
+    DM --> Notify["_dsr/NotifyModal.tsx\nEmail draft"]
+    DM --> Pipeline["_dsr/WorkflowPipeline.tsx\nVisual 5-stage flow"]
+    DM --> Del["_dsr/DeleteConfirm.tsx\nConfirmation dialog"]
+
+    style DM fill:#e0e7ff
+    style T fill:#f0fdf4
+    style C fill:#f0fdf4
+    style H fill:#f0fdf4

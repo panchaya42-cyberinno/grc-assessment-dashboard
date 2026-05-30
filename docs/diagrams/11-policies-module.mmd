@@ -1,0 +1,22 @@
+graph TD
+    subgraph Pages["📄 app/policies/"]
+        List["page.tsx\nPolicy list\nfilter by category/status"]
+        New["new/page.tsx\nCreate new policy\n+ AI draft"]
+        Detail["[id]/page.tsx\nPolicy detail\nview + actions"]
+        Edit["[id]/edit/page.tsx\nEdit policy\ncontent + metadata"]
+    end
+
+    subgraph Data["💾 app/policies/data.ts"]
+        Static["Policy templates\nCategory definitions\nDefault controls"]
+    end
+
+    subgraph API["🔌 app/api/policy-ai/"]
+        AIRoute["route.ts\nPOST — streaming\nClaude drafts policy\nfrom title + scope"]
+    end
+
+    List --> New --> Detail --> Edit
+    List --> Detail
+    New -->|"AI Generate\nstreaming fetch"| AIRoute
+    Edit -->|"AI Improve\nstreaming fetch"| AIRoute
+    List --> Static
+    Detail --> Static

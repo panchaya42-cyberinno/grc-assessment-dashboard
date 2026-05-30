@@ -1,0 +1,30 @@
+graph TD
+    subgraph Files["📁 app/cyber-drill/"]
+        Page["page.tsx\n141 lines\nstate + orchestration"]
+        subgraph Components["_components/"]
+            Types["drill-types.ts\nUploadedDoc, DrillContext\nDrillScenario, DrillInject"]
+            Consts["drill-constants.ts\nTOPIC_PRESETS, INDUSTRIES\nFORMATS, SEVERITY_COLORS"]
+            StepBar["StepBar.tsx\nProgress indicator"]
+            S1["Step1Upload.tsx\nPDF/Word/Excel/URL upload\nSheetJS parser"]
+            S2["Step2Context.tsx\nIndustry, Format, Topic\nSeverity, Regulatory"]
+            S3["Step3Scenarios.tsx\nAI-generated scenario cards\nSelect one to edit"]
+            S4["Step4Editor.tsx\nInject CRUD\nAI suggest replace/new"]
+            S5["Step5RunDrill.tsx\nLive drill runner\nProgress + download report"]
+            InjectRow["InjectRow.tsx\nSingle inject row\nEdit/reorder/delete"]
+        end
+    end
+
+    subgraph API["🔌 API Routes"]
+        Gen["api/cyber-drill/generate\nPOST — Claude สร้าง scenarios\nจาก context + documents"]
+        Suggest["api/cyber-drill/suggest-inject\nPOST — Claude แนะนำ inject\nสำหรับ phase ที่เลือก"]
+    end
+
+    Page --> StepBar
+    Page --> S1 --> S2 --> S3 --> S4 --> S5
+    S4 --> InjectRow
+    S3 -->|"generateScenarios()"| Gen
+    S4 -->|"AI suggest"| Suggest
+
+    style Page fill:#e0e7ff
+    style Types fill:#f0fdf4
+    style Consts fill:#f0fdf4

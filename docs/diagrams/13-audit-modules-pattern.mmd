@@ -1,0 +1,28 @@
+graph TD
+    subgraph Pattern["🔄 Audit Module Pattern (ทุก module ใช้ pattern เดียวกัน)"]
+        direction LR
+        DataFile["data.ts\nControl questions\nScoring criteria\nCategories"]
+        PageFile["page.tsx\nChecklist UI\nScore calculation\nProgress tracking"]
+        APIRoute["api/module/analyze\nPOST — Claude\nวิเคราะห์ผล + แนะนำ\nImprovement actions"]
+        ExportLib["lib/export-*.ts\nGenerate Excel report\n(บาง module)"]
+        Storage["localStorage\nบันทึกคำตอบ + ผลลัพธ์"]
+    end
+
+    subgraph Modules["📋 Modules ที่ใช้ Pattern นี้"]
+        M1["ISO 27001:2022\n/pre-audit\n→ lib/export-preaudit.ts"]
+        M2["ISO 27799:2025\n/iso27799\n(Healthcare)"]
+        M3["PDPA Audit\n/pdpa-audit"]
+        M4["CII Thailand\n/cii-audit\n→ lib/export-cii.ts"]
+        M5["CRA-NCSA\n/cra-ncsa\nMaturity model"]
+        M6["ISA/IEC 62443\n/isa-62443\nOT Security standard"]
+        M7["OT/ICS Security\n/ot-security"]
+        M8["Web Security\n/web-security-checklist"]
+    end
+
+    DataFile --> PageFile
+    PageFile -->|"analyze"| APIRoute
+    PageFile -->|"save answers"| Storage
+    Storage -->|"load"| PageFile
+    PageFile -->|"export"| ExportLib
+
+    Pattern -.->|"ทุก module implement"| Modules

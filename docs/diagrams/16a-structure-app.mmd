@@ -1,0 +1,82 @@
+graph TD
+    App["📁 app/"]
+
+    App --> PDPA["📁 pdpa/\nPDPA Governance Hub"]
+    App --> Drill["📁 cyber-drill/\nCyber Drill Wizard"]
+    App --> AIRisk["📁 ai-risk/\nAI Risk Assessment"]
+    App --> Asset["📁 asset-risk/\nAsset Risk"]
+    App --> Policies["📁 policies/\nPolicy Management"]
+    App --> Advisory["📁 advisory/\nAI Chatbot"]
+    App --> Audits["📁 Audit Modules"]
+    App --> Others["📁 Other Pages"]
+    App --> API["📁 api/\nServer API Routes"]
+
+    PDPA --> PDPA1["page.tsx — Hub tabs"]
+    PDPA --> PDPA2["dsr-manager.tsx"]
+    PDPA --> PDPA3["consent-manager.tsx"]
+    PDPA --> PDPA4["ropa-manager.tsx"]
+    PDPA --> PDPA5["dpia-manager.tsx"]
+    PDPA --> PDPA6["breach-manager.tsx"]
+    PDPA --> PDPA7["📁 _dsr/ — 10 sub-files"]
+
+    Drill --> Drill1["page.tsx — orchestration"]
+    Drill --> Drill2["📁 _components/\ndrill-types.ts\ndrill-constants.ts\nStep1Upload → Step5RunDrill\nInjectRow.tsx"]
+
+    AIRisk --> AIR1["page.tsx — overview"]
+    AIRisk --> AIR2["📁 use-cases/\npage / new / [id]"]
+    AIRisk --> AIR3["assessment/page.tsx"]
+    AIRisk --> AIR4["classification/page.tsx"]
+    AIRisk --> AIR5["executive/page.tsx"]
+
+    Asset --> Asset1["page.tsx — registry + heatmap"]
+    Asset --> Asset2["assess/page.tsx — scoring"]
+
+    Policies --> Pol1["page.tsx — list"]
+    Policies --> Pol2["new/page.tsx"]
+    Policies --> Pol3["[id]/page.tsx"]
+    Policies --> Pol4["[id]/edit/page.tsx"]
+
+    Advisory --> Adv1["page.tsx — chat UI"]
+    Advisory --> Adv2["[id]/page.tsx — history"]
+
+    Audits --> A1["pre-audit/ — ISO 27001:2022"]
+    Audits --> A2["iso27799/ — ISO 27799:2025"]
+    Audits --> A3["pdpa-audit/ — PDPA Audit"]
+    Audits --> A4["cii-audit/ — CII Thailand"]
+    Audits --> A5["cra-ncsa/ — CRA-NCSA"]
+    Audits --> A6["isa-62443/ — ISA/IEC 62443"]
+    Audits --> A7["ot-security/ — OT/ICS"]
+    Audits --> A8["web-security-checklist/"]
+
+    Others --> O1["page.tsx — Dashboard"]
+    Others --> O2["kri-dashboard/"]
+    Others --> O3["threat-intel/"]
+    Others --> O4["frameworks/"]
+    Others --> O5["controls/"]
+    Others --> O6["evidence/"]
+    Others --> O7["questionnaire/"]
+    Others --> O8["result/"]
+    Others --> O9["external/assess/"]
+    Others --> O10["login/ + auth/ + onboarding/"]
+
+    API --> AP1["advisory/chat"]
+    API --> AP2["cyber-drill/generate\ncyber-drill/suggest-inject"]
+    API --> AP3["pdpa/analyze"]
+    API --> AP4["pdpa-audit/analyze"]
+    API --> AP5["policy-ai/"]
+    API --> AP6["pre-audit/analyze"]
+    API --> AP7["cii-audit/analyze"]
+    API --> AP8["iso27799/analyze"]
+    API --> AP9["consent/scan|sync|webhook"]
+    API --> AP10["auth/signout"]
+
+    style App fill:#6366f1,color:#fff
+    style PDPA fill:#e0e7ff
+    style Drill fill:#e0e7ff
+    style AIRisk fill:#e0e7ff
+    style Asset fill:#e0e7ff
+    style Policies fill:#e0e7ff
+    style Advisory fill:#e0e7ff
+    style Audits fill:#fef3c7
+    style Others fill:#f0fdf4
+    style API fill:#fdf2f8
