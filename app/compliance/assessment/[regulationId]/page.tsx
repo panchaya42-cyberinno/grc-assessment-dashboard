@@ -220,39 +220,56 @@ export default function AssessmentPage() {
     <div className="flex min-h-screen" style={{ background: "#0a1628", color: "#E8EDF4" }}>
       <SidebarNav />
       <main className="flex-1 ml-56 p-6 lg:p-8 overflow-auto">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex-1 min-w-0 mr-4">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <BookOpen className="w-5 h-5 shrink-0" style={{ color: GREEN }} />
-              <h1 className="text-xl font-bold text-white truncate">
-                {reg ? reg.name : "กำลังโหลด..."}
-              </h1>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0"
-                style={{ background: GREEN_BG, color: GREEN, border: "1px solid rgba(34,197,94,0.3)" }}>
-                Compliance Assessment
-              </span>
+        {/* Back + year selector */}
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/compliance/legal-register"
+            className="flex items-center gap-1.5 text-sm transition"
+            style={{ color: "#6B7E96" }}>
+            <span>←</span> ทะเบียนกฎหมาย
+          </Link>
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="text-xs rounded-lg px-2 py-1.5 text-white focus:outline-none"
+            style={{ background: INP_BG, border: `1px solid ${INP_BORDER}` }}
+          >
+            {[CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map(y => (
+              <option key={y} value={y}>ปี {y + 543} ({y})</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Regulation name banner */}
+        <div className="rounded-2xl p-5 mb-6"
+          style={{ background: "linear-gradient(135deg, rgba(34,197,94,0.10) 0%, rgba(75,159,255,0.06) 100%)", border: "1px solid rgba(34,197,94,0.20)" }}>
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: GREEN_BG, border: "1px solid rgba(34,197,94,0.3)" }}>
+              <BookOpen className="w-6 h-6" style={{ color: GREEN }} />
             </div>
-            <p className="text-sm" style={{ color: "#6B7E96" }}>
-              ประเมินความสอดคล้องรายมาตรา · ISO 14001/27001 – IMAFLC04
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link href="/compliance/legal-register"
-              className="text-xs px-3 py-1.5 rounded-lg transition"
-              style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}`, color: "#6B7E96" }}>
-              ← ทะเบียนกฎหมาย
-            </Link>
-            <select
-              value={year}
-              onChange={e => setYear(Number(e.target.value))}
-              className="text-xs rounded-lg px-2 py-1.5 text-white focus:outline-none"
-              style={{ background: INP_BG, border: `1px solid ${INP_BORDER}` }}
-            >
-              {[CURRENT_YEAR + 1, CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map(y => (
-                <option key={y} value={y}>ปี {y + 543} ({y})</option>
-              ))}
-            </select>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {reg && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                    style={{ background: (REG_TYPE_CFG[reg.reg_type] ?? REG_TYPE_CFG.standard).bg, color: (REG_TYPE_CFG[reg.reg_type] ?? REG_TYPE_CFG.standard).color }}>
+                    {(REG_TYPE_CFG[reg.reg_type] ?? REG_TYPE_CFG.standard).label}
+                  </span>
+                )}
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  style={{ background: GREEN_BG, color: GREEN, border: "1px solid rgba(34,197,94,0.3)" }}>
+                  Compliance Assessment
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold text-white leading-tight mb-1">
+                {reg ? reg.name : <span className="opacity-40">กำลังโหลด...</span>}
+              </h1>
+              {reg?.name_en && (
+                <p className="text-sm" style={{ color: "#6B7E96" }}>{reg.name_en}</p>
+              )}
+              <p className="text-xs mt-1" style={{ color: "#4B9FFF", opacity: 0.7 }}>
+                ประเมินความสอดคล้องรายมาตรา · ISO 14001/27001 – IMAFLC04
+              </p>
+            </div>
           </div>
         </div>
 
@@ -342,6 +359,16 @@ export default function AssessmentPage() {
           </div>
         ) : (
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${CARD_BORDER}` }}>
+            {/* Sticky regulation name row */}
+            {reg && (
+              <div className="flex items-center gap-2 px-4 py-2.5 sticky top-0 z-10"
+                style={{ background: "rgba(12,26,46,0.97)", borderBottom: `1px solid ${CARD_BORDER}`, backdropFilter: "blur(8px)" }}>
+                <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: GREEN }} />
+                <span className="text-xs font-semibold" style={{ color: GREEN }}>{reg.name}</span>
+                {reg.name_en && <span className="text-xs" style={{ color: "#6B7E96" }}>· {reg.name_en}</span>}
+                <span className="ml-auto text-xs" style={{ color: "#6B7E96" }}>ปี {year + 543}</span>
+              </div>
+            )}
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${CARD_BORDER}` }}>
