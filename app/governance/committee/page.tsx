@@ -1,182 +1,728 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 import { SidebarNav } from "@/components/grc/sidebar-nav"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
-  Users,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Calendar,
-  Building2,
-  User,
-  CheckCircle2,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Users, ChevronDown, ChevronRight, Plus, Calendar,
+  Building2, User, Pencil, Trash2, ArrowLeft, CheckCircle2,
+  XCircle, Clock,
 } from "lucide-react"
 
 const PURPLE = "#9B7FFF"
 const PURPLE_BG = "rgba(155,127,255,0.10)"
 const PURPLE_BORDER = "rgba(155,127,255,0.35)"
 
-interface CommitteeMember {
-  name: string
-  position: string
-  type: "Executive" | "Independent" | "Management"
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Committee {
   id: string
-  nameTh: string
-  nameEn: string
-  memberCount: number
-  chair: string
-  frequency: string
-  lastMeeting: string
-  nextMeeting: string
-  status: "active" | "inactive"
-  description: string
-  members: CommitteeMember[]
+  name_th: string
+  name_en: string
+  committee_type: string
+  chair_name: string
+  chair_position: string
+  meeting_frequency: string
+  established_date: string | null
+  mandate: string | null
+  status: string
 }
 
-const committees: Committee[] = [
-  {
-    id: "BOD",
-    nameTh: "คณะกรรมการบริษัท",
-    nameEn: "Board of Directors",
-    memberCount: 9,
-    chair: "นายสมชาย รักดี",
-    frequency: "รายไตรมาส",
-    lastMeeting: "15 มี.ค. 2026",
-    nextMeeting: "2 มิ.ย. 2026",
-    status: "active",
-    description: "กำกับดูแลนโยบายและทิศทางการดำเนินธุรกิจขององค์กร",
-    members: [
-      { name: "นายสมชาย รักดี", position: "ประธานกรรมการ", type: "Independent" },
-      { name: "นายวิชัย ศรีสวัสดิ์", position: "กรรมการผู้จัดการใหญ่", type: "Executive" },
-      { name: "นางสาวพิมพ์ใจ ทองดี", position: "กรรมการอิสระ", type: "Independent" },
-      { name: "นายประสิทธิ์ มั่นคง", position: "กรรมการอิสระ", type: "Independent" },
-      { name: "นางรัตนา สุขสม", position: "กรรมการ", type: "Executive" },
-      { name: "นายธนา พงษ์ดี", position: "กรรมการ", type: "Executive" },
-      { name: "ดร.สุวิทย์ ชาญวิทย์", position: "กรรมการอิสระ", type: "Independent" },
-      { name: "นางอรุณี วงศ์ทอง", position: "กรรมการ", type: "Management" },
-      { name: "นายชาญ พัฒนะ", position: "กรรมการ", type: "Management" },
-    ],
-  },
-  {
-    id: "AC",
-    nameTh: "คณะกรรมการตรวจสอบ",
-    nameEn: "Audit Committee",
-    memberCount: 3,
-    chair: "นางสาวพิมพ์ใจ ทองดี",
-    frequency: "รายเดือน",
-    lastMeeting: "28 เม.ย. 2026",
-    nextMeeting: "28 พ.ค. 2026",
-    status: "active",
-    description: "ตรวจสอบความถูกต้องของรายงานทางการเงิน ระบบควบคุมภายใน และการตรวจสอบภายนอก",
-    members: [
-      { name: "นางสาวพิมพ์ใจ ทองดี", position: "ประธานคณะกรรมการตรวจสอบ", type: "Independent" },
-      { name: "นายประสิทธิ์ มั่นคง", position: "กรรมการตรวจสอบ", type: "Independent" },
-      { name: "ดร.สุวิทย์ ชาญวิทย์", position: "กรรมการตรวจสอบ", type: "Independent" },
-    ],
-  },
-  {
-    id: "RC",
-    nameTh: "คณะกรรมการบริหารความเสี่ยง",
-    nameEn: "Risk Management Committee",
-    memberCount: 5,
-    chair: "นายวิชัย ศรีสวัสดิ์",
-    frequency: "รายไตรมาส",
-    lastMeeting: "10 มี.ค. 2026",
-    nextMeeting: "10 มิ.ย. 2026",
-    status: "active",
-    description: "กำกับดูแลกระบวนการบริหารความเสี่ยงองค์กรและความเสี่ยงด้านเทคโนโลยี",
-    members: [
-      { name: "นายวิชัย ศรีสวัสดิ์", position: "ประธาน", type: "Executive" },
-      { name: "นางรัตนา สุขสม", position: "กรรมการ", type: "Executive" },
-      { name: "นายสุรชัย ปัญญาดี", position: "CRO", type: "Management" },
-      { name: "นางสาวกัลยา นพรัตน์", position: "CFO", type: "Management" },
-      { name: "นายณรงค์ วิทยาพร", position: "CISO", type: "Management" },
-    ],
-  },
-  {
-    id: "ITSC",
-    nameTh: "คณะกรรมการเทคโนโลยีสารสนเทศ",
-    nameEn: "IT Steering Committee",
-    memberCount: 6,
-    chair: "นายธนา พงษ์ดี",
-    frequency: "รายเดือน",
-    lastMeeting: "5 พ.ค. 2026",
-    nextMeeting: "2 มิ.ย. 2026",
-    status: "active",
-    description: "กำกับทิศทางเทคโนโลยีสารสนเทศ ดิจิทัลทรานส์ฟอร์เมชัน และความมั่นคงปลอดภัยไซเบอร์",
-    members: [
-      { name: "นายธนา พงษ์ดี", position: "ประธาน", type: "Executive" },
-      { name: "นายณรงค์ วิทยาพร", position: "CISO / เลขานุการ", type: "Management" },
-      { name: "นายอภิชาติ สมบูรณ์", position: "CTO", type: "Management" },
-      { name: "นางสาวสุภาพร ชัยวัฒน์", position: "Head of IT Operations", type: "Management" },
-      { name: "นายกิตติ โสภาพงษ์", position: "Head of Cybersecurity", type: "Management" },
-      { name: "นางลลิตา พรมดี", position: "Head of Digital", type: "Management" },
-    ],
-  },
-  {
-    id: "CC",
-    nameTh: "คณะกรรมการด้านการปฏิบัติตามกฎเกณฑ์",
-    nameEn: "Compliance Committee",
-    memberCount: 4,
-    chair: "นางอรุณี วงศ์ทอง",
-    frequency: "รายไตรมาส",
-    lastMeeting: "20 เม.ย. 2026",
-    nextMeeting: "20 ก.ค. 2026",
-    status: "active",
-    description: "กำกับดูแลการปฏิบัติตามกฎหมาย กฎเกณฑ์ และนโยบายภายในองค์กร",
-    members: [
-      { name: "นางอรุณี วงศ์ทอง", position: "ประธาน", type: "Executive" },
-      { name: "นายชาญ พัฒนะ", position: "กรรมการ", type: "Management" },
-      { name: "นางสาวพรทิพย์ ธรรมรัตน์", position: "Chief Compliance Officer", type: "Management" },
-      { name: "นายศักดิ์ชัย ใจดี", position: "Head of Legal", type: "Management" },
-    ],
-  },
-]
+interface CommitteeMember {
+  id: string
+  committee_id: string
+  full_name: string
+  position: string
+  member_type: string
+  email: string | null
+  start_date: string | null
+  notes: string | null
+}
 
-function MemberTypeBadge({ type }: { type: CommitteeMember["type"] }) {
-  const cfg = {
-    Independent: { color: "#38bdf8", bg: "rgba(56,189,248,0.12)", border: "rgba(56,189,248,0.35)" },
-    Executive: { color: PURPLE, bg: PURPLE_BG, border: PURPLE_BORDER },
-    Management: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" },
-  }[type]
+interface Meeting {
+  id: string
+  committee_id: string
+  meeting_number: string
+  title: string
+  meeting_date: string | null
+  location: string | null
+  status: string
+  agenda: string | null
+  minutes: string | null
+  resolutions: string | null
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
+  useEffect(() => { const t = setTimeout(onHide, 3000); return () => clearTimeout(t) }, [onHide])
   return (
-    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
-      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
-    }}>
-      {type}
+    <div className="fixed bottom-6 right-6 z-[999] rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-xl"
+      style={{ background: PURPLE }}>
+      {msg}
+    </div>
+  )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(d: string | null) {
+  if (!d) return "—"
+  try { return new Date(d).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) }
+  catch { return d }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "active" || status === "completed")
+    return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: "#22c55e", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)" }}><CheckCircle2 className="h-3 w-3 inline mr-1" />Active</span>
+  if (status === "scheduled")
+    return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: "#38bdf8", background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.35)" }}><Clock className="h-3 w-3 inline mr-1" />Scheduled</span>
+  if (status === "cancelled")
+    return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: "#ef4444", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}><XCircle className="h-3 w-3 inline mr-1" />ยกเลิก</span>
+  if (status === "postponed")
+    return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: "#f59e0b", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.35)" }}><Clock className="h-3 w-3 inline mr-1" />เลื่อน</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: "#94a3b8", background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.35)" }}>{status}</span>
+}
+
+function MemberTypeBadge({ type }: { type: string }) {
+  const cfg: Record<string, { color: string; bg: string; border: string }> = {
+    independent: { color: "#38bdf8", bg: "rgba(56,189,248,0.12)", border: "rgba(56,189,248,0.35)" },
+    executive:   { color: PURPLE, bg: PURPLE_BG, border: PURPLE_BORDER },
+    management:  { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" },
+    expert:      { color: "#22c55e", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" },
+  }
+  const c = cfg[type] ?? cfg.management
+  const labels: Record<string, string> = { independent: "Independent", executive: "Executive", management: "Management", expert: "Expert" }
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: c.color, background: c.bg, border: `1px solid ${c.border}` }}>
+      {labels[type] ?? type}
     </span>
   )
 }
 
+// ─── Committee Modal ──────────────────────────────────────────────────────────
+
+function CommitteeModal({ initial, onClose, onSave }: {
+  initial?: Committee | null
+  onClose: () => void
+  onSave: (data: Omit<Committee, "id">) => Promise<void>
+}) {
+  const [form, setForm] = useState({
+    name_th: initial?.name_th ?? "",
+    name_en: initial?.name_en ?? "",
+    committee_type: initial?.committee_type ?? "board",
+    chair_name: initial?.chair_name ?? "",
+    chair_position: initial?.chair_position ?? "",
+    meeting_frequency: initial?.meeting_frequency ?? "monthly",
+    established_date: initial?.established_date?.slice(0, 10) ?? "",
+    mandate: initial?.mandate ?? "",
+    status: initial?.status ?? "active",
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!form.name_th.trim()) return
+    setSaving(true)
+    await onSave({ ...form, established_date: form.established_date || null, mandate: form.mandate || null })
+    setSaving(false)
+  }
+
+  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
+  const sel = inp
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg bg-[#111827] border-white/10">
+        <DialogHeader>
+          <DialogTitle>{initial ? "แก้ไขคณะกรรมการ" : "เพิ่มคณะกรรมการ"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">ชื่อคณะกรรมการ (Thai) *</Label>
+              <input className={inp} value={form.name_th} onChange={e => setForm(f => ({ ...f, name_th: e.target.value }))} placeholder="คณะกรรมการ..." />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ชื่อ (English)</Label>
+              <input className={inp} value={form.name_en} onChange={e => setForm(f => ({ ...f, name_en: e.target.value }))} placeholder="Committee..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">ประเภท</Label>
+              <select className={sel} value={form.committee_type} onChange={e => setForm(f => ({ ...f, committee_type: e.target.value }))}>
+                {[["board","Board"],["audit","Audit"],["risk","Risk"],["it","IT"],["compliance","Compliance"],["ethics","Ethics"],["other","Other"]].map(([v,l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ความถี่การประชุม</Label>
+              <select className={sel} value={form.meeting_frequency} onChange={e => setForm(f => ({ ...f, meeting_frequency: e.target.value }))}>
+                {[["weekly","รายสัปดาห์"],["monthly","รายเดือน"],["quarterly","รายไตรมาส"],["biannual","ราย 6 เดือน"],["annual","รายปี"],["adhoc","เฉพาะกิจ"]].map(([v,l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">ประธาน</Label>
+              <input className={inp} value={form.chair_name} onChange={e => setForm(f => ({ ...f, chair_name: e.target.value }))} placeholder="ชื่อประธาน" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ตำแหน่งประธาน</Label>
+              <input className={inp} value={form.chair_position} onChange={e => setForm(f => ({ ...f, chair_position: e.target.value }))} placeholder="ตำแหน่ง" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">วันที่จัดตั้ง</Label>
+              <input type="date" className={inp} value={form.established_date} onChange={e => setForm(f => ({ ...f, established_date: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">สถานะ</Label>
+              <select className={sel} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">อำนาจหน้าที่</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.mandate ?? ""} onChange={e => setForm(f => ({ ...f, mandate: e.target.value }))} placeholder="อำนาจหน้าที่..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Member Modal ─────────────────────────────────────────────────────────────
+
+function MemberModal({ committeeId, initial, onClose, onSave }: {
+  committeeId: string
+  initial?: CommitteeMember | null
+  onClose: () => void
+  onSave: (data: Omit<CommitteeMember, "id">) => Promise<void>
+}) {
+  const [form, setForm] = useState({
+    committee_id: committeeId,
+    full_name: initial?.full_name ?? "",
+    position: initial?.position ?? "",
+    member_type: initial?.member_type ?? "management",
+    email: initial?.email ?? "",
+    start_date: initial?.start_date?.slice(0, 10) ?? "",
+    notes: initial?.notes ?? "",
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!form.full_name.trim()) return
+    setSaving(true)
+    await onSave({ ...form, email: form.email || null, start_date: form.start_date || null, notes: form.notes || null })
+    setSaving(false)
+  }
+
+  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md bg-[#111827] border-white/10">
+        <DialogHeader>
+          <DialogTitle>{initial ? "แก้ไขสมาชิก" : "เพิ่มสมาชิก"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs mb-1 block">ชื่อ-สกุล *</Label>
+            <input className={inp} value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">ตำแหน่ง</Label>
+              <input className={inp} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} placeholder="ตำแหน่ง" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ประเภทสมาชิก</Label>
+              <select className={inp} value={form.member_type} onChange={e => setForm(f => ({ ...f, member_type: e.target.value }))}>
+                <option value="executive">Executive</option>
+                <option value="independent">Independent</option>
+                <option value="management">Management</option>
+                <option value="expert">Expert</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">อีเมล</Label>
+              <input type="email" className={inp} value={form.email ?? ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@..." />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">วันที่เริ่ม</Label>
+              <input type="date" className={inp} value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">หมายเหตุ</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={2} value={form.notes ?? ""} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Meeting Modal ────────────────────────────────────────────────────────────
+
+function MeetingModal({ committeeId, initial, onClose, onSave }: {
+  committeeId: string
+  initial?: Meeting | null
+  onClose: () => void
+  onSave: (data: Omit<Meeting, "id">) => Promise<void>
+}) {
+  const [form, setForm] = useState({
+    committee_id: committeeId,
+    meeting_number: initial?.meeting_number ?? "",
+    title: initial?.title ?? "",
+    meeting_date: initial?.meeting_date ? initial.meeting_date.slice(0, 16) : "",
+    location: initial?.location ?? "",
+    status: initial?.status ?? "scheduled",
+    agenda: initial?.agenda ?? "",
+    minutes: initial?.minutes ?? "",
+    resolutions: initial?.resolutions ?? "",
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!form.title.trim()) return
+    setSaving(true)
+    await onSave({ ...form, meeting_date: form.meeting_date || null, location: form.location || null, agenda: form.agenda || null, minutes: form.minutes || null, resolutions: form.resolutions || null })
+    setSaving(false)
+  }
+
+  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg bg-[#111827] border-white/10">
+        <DialogHeader>
+          <DialogTitle>{initial ? "แก้ไขการประชุม" : "เพิ่มการประชุม"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">หมายเลขการประชุม</Label>
+              <input className={inp} value={form.meeting_number} onChange={e => setForm(f => ({ ...f, meeting_number: e.target.value }))} placeholder="1/2568" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">สถานะ</Label>
+              <select className={inp} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="postponed">Postponed</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">ชื่อการประชุม *</Label>
+            <input className={inp} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="ชื่อการประชุม" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">วันที่/เวลา</Label>
+              <input type="datetime-local" className={inp} value={form.meeting_date} onChange={e => setForm(f => ({ ...f, meeting_date: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">สถานที่</Label>
+              <input className={inp} value={form.location ?? ""} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="สถานที่" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">วาระการประชุม</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.agenda ?? ""} onChange={e => setForm(f => ({ ...f, agenda: e.target.value }))} placeholder="วาระ..." />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">บันทึกการประชุม</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.minutes ?? ""} onChange={e => setForm(f => ({ ...f, minutes: e.target.value }))} placeholder="บันทึก..." />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">มติที่ประชุม</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={2} value={form.resolutions ?? ""} onChange={e => setForm(f => ({ ...f, resolutions: e.target.value }))} placeholder="มติ..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Committee Card ───────────────────────────────────────────────────────────
+
+function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
+  committee: Committee
+  onEdit: () => void
+  onDelete: () => void
+  onRefresh: () => void
+}) {
+  const supabase = createClient()
+  const [expanded, setExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState<"members" | "meetings">("members")
+  const [members, setMembers] = useState<CommitteeMember[]>([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const [loadingMeetings, setLoadingMeetings] = useState(false)
+  const [memberModal, setMemberModal] = useState<{ open: boolean; initial?: CommitteeMember | null }>({ open: false })
+  const [meetingModal, setMeetingModal] = useState<{ open: boolean; initial?: Meeting | null }>({ open: false })
+  const [expandedMeeting, setExpandedMeeting] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const loadMembers = useCallback(async () => {
+    setLoadingMembers(true)
+    const { data } = await supabase.from("gov_committee_members").select("*").eq("committee_id", committee.id).order("full_name")
+    setMembers(data ?? [])
+    setLoadingMembers(false)
+  }, [supabase, committee.id])
+
+  const loadMeetings = useCallback(async () => {
+    setLoadingMeetings(true)
+    const { data } = await supabase.from("gov_meetings").select("*").eq("committee_id", committee.id).order("meeting_date", { ascending: false })
+    setMeetings(data ?? [])
+    setLoadingMeetings(false)
+  }, [supabase, committee.id])
+
+  useEffect(() => {
+    if (expanded) {
+      loadMembers()
+      loadMeetings()
+    }
+  }, [expanded, loadMembers, loadMeetings])
+
+  async function saveMember(data: Omit<CommitteeMember, "id">) {
+    if (memberModal.initial) {
+      await supabase.from("gov_committee_members").update(data).eq("id", memberModal.initial.id)
+    } else {
+      await supabase.from("gov_committee_members").insert(data)
+    }
+    setMemberModal({ open: false })
+    setToast("บันทึกสำเร็จ")
+    loadMembers()
+    onRefresh()
+  }
+
+  async function deleteMember(id: string) {
+    if (!window.confirm("ต้องการลบรายการนี้?")) return
+    await supabase.from("gov_committee_members").delete().eq("id", id)
+    setToast("ลบสำเร็จ")
+    loadMembers()
+    onRefresh()
+  }
+
+  async function saveMeeting(data: Omit<Meeting, "id">) {
+    if (meetingModal.initial) {
+      await supabase.from("gov_meetings").update(data).eq("id", meetingModal.initial.id)
+    } else {
+      await supabase.from("gov_meetings").insert(data)
+    }
+    setMeetingModal({ open: false })
+    setToast("บันทึกสำเร็จ")
+    loadMeetings()
+    onRefresh()
+  }
+
+  async function deleteMeeting(id: string) {
+    if (!window.confirm("ต้องการลบรายการนี้?")) return
+    await supabase.from("gov_meetings").delete().eq("id", id)
+    setToast("ลบสำเร็จ")
+    loadMeetings()
+  }
+
+  const meetingsThisMonth = meetings.filter(m => {
+    if (!m.meeting_date) return false
+    const d = new Date(m.meeting_date)
+    const now = new Date()
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
+
+  return (
+    <>
+      {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
+      {memberModal.open && (
+        <MemberModal committeeId={committee.id} initial={memberModal.initial} onClose={() => setMemberModal({ open: false })} onSave={saveMember} />
+      )}
+      {meetingModal.open && (
+        <MeetingModal committeeId={committee.id} initial={meetingModal.initial} onClose={() => setMeetingModal({ open: false })} onSave={saveMeeting} />
+      )}
+      <Card style={{ background: "rgba(255,255,255,0.03)", border: expanded ? `1px solid ${PURPLE_BORDER}` : "1px solid rgba(255,255,255,0.08)", transition: "border-color 0.2s" }}>
+        <CardContent className="pt-5">
+          {/* Header row */}
+          <div className="flex items-start gap-4">
+            <button className="flex-1 text-left" onClick={() => setExpanded(e => !e)}>
+              <div className="flex items-start gap-4">
+                <div style={{ background: PURPLE_BG, border: `1px solid ${PURPLE_BORDER}`, borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
+                  <Building2 className="h-5 w-5" style={{ color: PURPLE }} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="font-bold text-foreground">{committee.name_th}</h3>
+                    <StatusBadge status={committee.status} />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{committee.name_en}</p>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Users className="h-3.5 w-3.5 text-blue-400" />
+                      ประธาน: <span className="font-medium text-foreground ml-1">{committee.chair_name || "—"}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5 text-amber-400" />
+                      ประชุม: <span className="font-medium text-foreground ml-1">{committee.meeting_frequency}</span>
+                    </span>
+                    {meetingsThisMonth > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(56,189,248,0.12)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.3)" }}>
+                        {meetingsThisMonth} ประชุมเดือนนี้
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground">
+                <Pencil className="h-4 w-4" />
+              </button>
+              <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors text-muted-foreground hover:text-red-400">
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <button onClick={() => setExpanded(e => !e)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground">
+                {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Expanded panel */}
+          {expanded && (
+            <div className="mt-5 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              {/* Tabs */}
+              <div className="flex gap-2 mb-4">
+                {(["members", "meetings"] as const).map(t => (
+                  <button key={t} onClick={() => setActiveTab(t)}
+                    className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      background: activeTab === t ? PURPLE : "rgba(255,255,255,0.04)",
+                      color: activeTab === t ? "#fff" : "#94a3b8",
+                      border: activeTab === t ? `1px solid ${PURPLE}` : "1px solid rgba(255,255,255,0.08)",
+                    }}>
+                    {t === "members" ? "สมาชิก" : "การประชุม"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Members tab */}
+              {activeTab === "members" && (
+                <div>
+                  <div className="flex justify-end mb-3">
+                    <Button size="sm" onClick={() => setMemberModal({ open: true, initial: null })} style={{ background: PURPLE, color: "#fff" }}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />เพิ่มสมาชิก
+                    </Button>
+                  </div>
+                  {loadingMembers ? (
+                    <div className="animate-pulse h-16 rounded-lg bg-white/5" />
+                  ) : members.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">ยังไม่มีสมาชิก</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                            {["#", "ชื่อ-สกุล", "ตำแหน่ง", "ประเภท", "อีเมล", "วันที่เริ่ม", ""].map(h => (
+                              <th key={h} className="text-left pb-2 pr-4 text-xs font-medium text-muted-foreground">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {members.map((m, idx) => (
+                            <tr key={m.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                              <td className="py-2.5 pr-4 text-xs text-muted-foreground">{idx + 1}</td>
+                              <td className="py-2.5 pr-4">
+                                <div className="flex items-center gap-2">
+                                  <div style={{ background: PURPLE_BG, borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <User className="h-3.5 w-3.5" style={{ color: PURPLE }} />
+                                  </div>
+                                  <span className="font-medium text-foreground">{m.full_name}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 pr-4 text-sm text-muted-foreground">{m.position}</td>
+                              <td className="py-2.5 pr-4"><MemberTypeBadge type={m.member_type} /></td>
+                              <td className="py-2.5 pr-4 text-xs text-muted-foreground">{m.email || "—"}</td>
+                              <td className="py-2.5 pr-4 text-xs text-muted-foreground">{fmt(m.start_date)}</td>
+                              <td className="py-2.5">
+                                <div className="flex gap-1">
+                                  <button onClick={() => setMemberModal({ open: true, initial: m })} className="p-1 rounded hover:bg-white/10">
+                                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </button>
+                                  <button onClick={() => deleteMember(m.id)} className="p-1 rounded hover:bg-red-500/20">
+                                    <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Meetings tab */}
+              {activeTab === "meetings" && (
+                <div>
+                  <div className="flex justify-end mb-3">
+                    <Button size="sm" onClick={() => setMeetingModal({ open: true, initial: null })} style={{ background: PURPLE, color: "#fff" }}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />เพิ่มการประชุม
+                    </Button>
+                  </div>
+                  {loadingMeetings ? (
+                    <div className="animate-pulse h-16 rounded-lg bg-white/5" />
+                  ) : meetings.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">ยังไม่มีการประชุม</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {meetings.map(m => (
+                        <div key={m.id} className="rounded-lg" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                          <div className="flex items-center gap-3 p-3">
+                            <button className="flex-1 text-left" onClick={() => setExpandedMeeting(expandedMeeting === m.id ? null : m.id)}>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-mono" style={{ color: PURPLE }}>{m.meeting_number || "—"}</span>
+                                <span className="text-sm font-medium text-foreground">{m.title}</span>
+                                <StatusBadge status={m.status} />
+                                <span className="text-xs text-muted-foreground">{fmt(m.meeting_date)}</span>
+                                {m.location && <span className="text-xs text-muted-foreground">· {m.location}</span>}
+                              </div>
+                            </button>
+                            <div className="flex gap-1 shrink-0">
+                              <button onClick={() => setMeetingModal({ open: true, initial: m })} className="p-1 rounded hover:bg-white/10">
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                              <button onClick={() => deleteMeeting(m.id)} className="p-1 rounded hover:bg-red-500/20">
+                                <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                              </button>
+                              {expandedMeeting === m.id ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                            </div>
+                          </div>
+                          {expandedMeeting === m.id && (
+                            <div className="px-3 pb-3 pt-0 space-y-2" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                              {m.agenda && <div><p className="text-xs font-semibold text-muted-foreground mb-1">วาระ</p><p className="text-sm text-foreground whitespace-pre-line">{m.agenda}</p></div>}
+                              {m.minutes && <div><p className="text-xs font-semibold text-muted-foreground mb-1">บันทึก</p><p className="text-sm text-foreground whitespace-pre-line">{m.minutes}</p></div>}
+                              {m.resolutions && <div><p className="text-xs font-semibold text-muted-foreground mb-1">มติ</p><p className="text-sm text-foreground whitespace-pre-line">{m.resolutions}</p></div>}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
+
 export default function CommitteePage() {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const supabase = createClient()
+  const [committees, setCommittees] = useState<Committee[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [committeeModal, setCommitteeModal] = useState<{ open: boolean; initial?: Committee | null }>({ open: false })
+  const [toast, setToast] = useState<string | null>(null)
+  const [stats, setStats] = useState({ totalMembers: 0, meetingsThisMonth: 0 })
 
-  const totalMembers = committees.reduce((sum, c) => sum + c.memberCount, 0)
-  const meetingsThisQ = 7
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(false)
+    const { data, error: err } = await supabase.from("gov_committees").select("*").order("name_th")
+    if (err) { setError(true); setLoading(false); return }
+    setCommittees(data ?? [])
 
-  const toggle = (id: string) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
+    // Load aggregate stats
+    const [membersRes, meetingsRes] = await Promise.all([
+      supabase.from("gov_committee_members").select("id", { count: "exact", head: true }),
+      supabase.from("gov_meetings").select("meeting_date").gte("meeting_date", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    ])
+    setStats({ totalMembers: membersRes.count ?? 0, meetingsThisMonth: (meetingsRes.data ?? []).length })
+    setLoading(false)
+  }, [supabase])
+
+  useEffect(() => { loadData() }, [loadData])
+
+  async function saveCommittee(data: Omit<Committee, "id">) {
+    if (committeeModal.initial) {
+      await supabase.from("gov_committees").update(data).eq("id", committeeModal.initial.id)
+    } else {
+      await supabase.from("gov_committees").insert(data)
+    }
+    setCommitteeModal({ open: false })
+    setToast("บันทึกสำเร็จ")
+    loadData()
+  }
+
+  async function deleteCommittee(id: string) {
+    if (!window.confirm("ต้องการลบรายการนี้?")) return
+    await supabase.from("gov_committees").delete().eq("id", id)
+    setToast("ลบสำเร็จ")
+    loadData()
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
       <main className="flex-1 ml-56 p-8">
+        {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
+        {committeeModal.open && (
+          <CommitteeModal initial={committeeModal.initial} onClose={() => setCommitteeModal({ open: false })} onSave={saveCommittee} />
+        )}
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
+            <Link href="/governance" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors">
+              <ArrowLeft className="h-4 w-4" />← กลับ
+            </Link>
             <h1 className="text-3xl font-bold text-foreground">Committee Structure</h1>
-            <p className="text-muted-foreground text-sm">โครงสร้างคณะกรรมการและสมาชิก</p>
+            <p className="text-muted-foreground text-sm">โครงสร้างคณะกรรมการ สมาชิก และการประชุม</p>
           </div>
-          <Button style={{ background: PURPLE, color: "#fff" }} className="hover:opacity-90">
-            <Plus className="h-4 w-4 mr-2" />
-            เพิ่มคณะกรรมการ
+          <Button onClick={() => setCommitteeModal({ open: true, initial: null })} style={{ background: PURPLE, color: "#fff" }} className="hover:opacity-90">
+            <Plus className="h-4 w-4 mr-2" />เพิ่มคณะกรรมการ
           </Button>
         </div>
 
@@ -184,8 +730,8 @@ export default function CommitteePage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
             { label: "คณะกรรมการทั้งหมด", value: committees.length, icon: <Building2 className="h-4 w-4" />, color: PURPLE },
-            { label: "สมาชิกทั้งหมด", value: totalMembers, icon: <Users className="h-4 w-4" />, color: "#38bdf8" },
-            { label: "การประชุมไตรมาสนี้", value: meetingsThisQ, icon: <Calendar className="h-4 w-4" />, color: "#22c55e" },
+            { label: "สมาชิกทั้งหมด", value: stats.totalMembers, icon: <Users className="h-4 w-4" />, color: "#38bdf8" },
+            { label: "การประชุมเดือนนี้", value: stats.meetingsThisMonth, icon: <Calendar className="h-4 w-4" />, color: "#22c55e" },
           ].map((s, i) => (
             <Card key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
               <CardContent className="pt-4 flex items-center gap-4">
@@ -193,7 +739,7 @@ export default function CommitteePage() {
                   <span style={{ color: s.color }}>{s.icon}</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
+                  {loading ? <div className="animate-pulse h-7 w-8 bg-white/10 rounded mb-1" /> : <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>}
                   <p className="text-xs text-muted-foreground">{s.label}</p>
                 </div>
               </CardContent>
@@ -201,107 +747,44 @@ export default function CommitteePage() {
           ))}
         </div>
 
-        {/* Committee Cards */}
-        <div className="space-y-4">
-          {committees.map(c => (
-            <Card key={c.id} style={{
-              background: "rgba(255,255,255,0.03)",
-              border: expanded[c.id] ? `1px solid ${PURPLE_BORDER}` : "1px solid rgba(255,255,255,0.08)",
-              transition: "border-color 0.2s",
-            }}>
-              {/* Card header row */}
-              <CardContent className="pt-5">
-                <button
-                  className="w-full text-left"
-                  onClick={() => toggle(c.id)}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div style={{ background: PURPLE_BG, border: `1px solid ${PURPLE_BORDER}`, borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
-                        <Building2 className="h-5 w-5" style={{ color: PURPLE }} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-bold text-foreground">{c.nameTh}</h3>
-                          <Badge className="text-xs" style={{
-                            background: "rgba(34,197,94,0.12)", color: "#22c55e",
-                            border: "1px solid rgba(34,197,94,0.35)"
-                          }}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Active
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{c.nameEn} — {c.description}</p>
-                        <div className="flex items-center gap-6 flex-wrap">
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <User className="h-3.5 w-3.5" style={{ color: PURPLE }} />
-                            <span className="font-medium text-foreground">{c.memberCount}</span> สมาชิก
-                          </span>
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Users className="h-3.5 w-3.5 text-blue-400" />
-                            ประธาน: <span className="font-medium text-foreground ml-1">{c.chair}</span>
-                          </span>
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Calendar className="h-3.5 w-3.5 text-amber-400" />
-                            ประชุม: <span className="font-medium text-foreground ml-1">{c.frequency}</span>
-                          </span>
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            ครั้งล่าสุด: <span className="font-medium text-foreground ml-1">{c.lastMeeting}</span>
-                          </span>
-                          <span className="flex items-center gap-1.5 text-xs">
-                            <span className="text-muted-foreground">ครั้งถัดไป:</span>
-                            <span className="font-medium ml-1" style={{ color: PURPLE }}>{c.nextMeeting}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="shrink-0 mt-1">
-                      {expanded[c.id]
-                        ? <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                        : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                    </div>
-                  </div>
-                </button>
+        {/* Error */}
+        {error && (
+          <div className="mb-6 rounded-lg p-4 text-sm font-medium" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+            เกิดข้อผิดพลาดในการโหลดข้อมูล
+          </div>
+        )}
 
-                {/* Expanded member list */}
-                {expanded[c.id] && (
-                  <div className="mt-5 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">รายชื่อสมาชิก</p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                            {["#", "ชื่อ-สกุล", "ตำแหน่ง", "ประเภท"].map(h => (
-                              <th key={h} className="text-left pb-2 pr-4 text-xs font-medium text-muted-foreground">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {c.members.map((m, idx) => (
-                            <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                              <td className="py-2.5 pr-4 text-xs text-muted-foreground">{idx + 1}</td>
-                              <td className="py-2.5 pr-4">
-                                <div className="flex items-center gap-2">
-                                  <div style={{ background: PURPLE_BG, borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <User className="h-3.5 w-3.5" style={{ color: PURPLE }} />
-                                  </div>
-                                  <span className="font-medium text-foreground">{m.name}</span>
-                                </div>
-                              </td>
-                              <td className="py-2.5 pr-4 text-sm text-muted-foreground">{m.position}</td>
-                              <td className="py-2.5"><MemberTypeBadge type={m.type} /></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Loading */}
+        {loading && (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="animate-pulse rounded-xl h-24 bg-white/5" />
+            ))}
+          </div>
+        )}
 
+        {/* Committee list */}
+        {!loading && !error && (
+          <div className="space-y-4">
+            {committees.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p className="text-lg font-medium">ยังไม่มีคณะกรรมการ</p>
+                <p className="text-sm">กดเพิ่มคณะกรรมการเพื่อเริ่มต้น</p>
+              </div>
+            ) : (
+              committees.map(c => (
+                <CommitteeCard
+                  key={c.id}
+                  committee={c}
+                  onEdit={() => setCommitteeModal({ open: true, initial: c })}
+                  onDelete={() => deleteCommittee(c.id)}
+                  onRefresh={loadData}
+                />
+              ))
+            )}
+          </div>
+        )}
       </main>
     </div>
   )

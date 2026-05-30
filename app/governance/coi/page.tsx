@@ -1,309 +1,468 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 import { SidebarNav } from "@/components/grc/sidebar-nav"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Scale,
-  Plus,
-  X,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  User,
-  FileText,
-  Flag,
-} from "lucide-react"
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Scale, Plus, Pencil, Trash2, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react"
 
 const PURPLE = "#9B7FFF"
 const PURPLE_BG = "rgba(155,127,255,0.10)"
 const PURPLE_BORDER = "rgba(155,127,255,0.35)"
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface CoiDeclaration {
   id: string
-  name: string
-  department: string
-  position: string
-  coiType: string
-  summary: string
-  dateSubmitted: string
-  status: "รอตรวจสอบ" | "ผ่านการตรวจสอบ" | "ต้องดำเนินการ"
-  risk: "สูง" | "กลาง" | "ต่ำ"
+  full_name: string
+  department: string | null
+  position: string | null
+  email: string | null
+  coi_type: string
+  conflict_detail: string | null
+  company_relationship: string | null
+  proposed_mitigation: string | null
+  self_risk_level: string
+  status: string
+  risk_level: string
+  reviewer_notes: string | null
+  reviewer_name: string | null
+  declared_at: string | null
+  reviewed_at: string | null
 }
 
-const declarations: CoiDeclaration[] = [
-  { id: "COI-001", name: "นายวิรัตน์ สมบัติ", department: "จัดซื้อ", position: "ผู้จัดการฝ่ายจัดซื้อ", coiType: "ผลประโยชน์จากคู่ค้า", summary: "ภรรยาเป็นกรรมการบริษัท ABC Supply Co.", dateSubmitted: "5 พ.ค. 2026", status: "ต้องดำเนินการ", risk: "สูง" },
-  { id: "COI-002", name: "น.ส.สุนิสา พงษ์ดี", department: "การเงิน", position: "นักบัญชีอาวุโส", coiType: "ธุรกิจส่วนตัว", summary: "เป็นเจ้าของร้านค้าออนไลน์ที่ไม่เกี่ยวข้องกับธุรกิจหลัก", dateSubmitted: "2 พ.ค. 2026", status: "ผ่านการตรวจสอบ", risk: "ต่ำ" },
-  { id: "COI-003", name: "นายประเสริฐ ชำนาญ", department: "IT", position: "System Administrator", coiType: "ผลประโยชน์จากคู่ค้า", summary: "น้องชายทำงานที่บริษัท CloudTech ซึ่งเป็นคู่ค้า", dateSubmitted: "28 เม.ย. 2026", status: "รอตรวจสอบ", risk: "กลาง" },
-  { id: "COI-004", name: "น.ส.กนกวรรณ ใจดี", department: "ขาย", position: "Account Manager", coiType: "ความสัมพันธ์ส่วนตัว", summary: "แฟนหนุ่มเป็นผู้บริหารลูกค้ารายใหญ่", dateSubmitted: "25 เม.ย. 2026", status: "ต้องดำเนินการ", risk: "สูง" },
-  { id: "COI-005", name: "นายธีรพล สุขเจริญ", department: "HR", position: "HR Manager", coiType: "ความสัมพันธ์ส่วนตัว", summary: "เป็นพี่ชายของพนักงานในทีม", dateSubmitted: "20 เม.ย. 2026", status: "รอตรวจสอบ", risk: "กลาง" },
-  { id: "COI-006", name: "น.ส.อารยา นพรัตน์", department: "กฎหมาย", position: "Legal Counsel", coiType: "ธุรกิจส่วนตัว", summary: "รับงานที่ปรึกษากฎหมายนอกเวลาให้บุคคลภายนอก", dateSubmitted: "18 เม.ย. 2026", status: "รอตรวจสอบ", risk: "กลาง" },
-  { id: "COI-007", name: "นายสิทธิชัย มั่นคง", department: "Operations", position: "Logistics Manager", coiType: "ผลประโยชน์จากคู่ค้า", summary: "เป็นผู้ถือหุ้นในบริษัทขนส่งที่ให้บริการองค์กร 5%", dateSubmitted: "15 เม.ย. 2026", status: "ต้องดำเนินการ", risk: "สูง" },
-  { id: "COI-008", name: "น.ส.วารี สุขสม", department: "การตลาด", position: "Brand Manager", coiType: "ธุรกิจส่วนตัว", summary: "เป็น Influencer ด้านธุรกิจนอกเวลางาน", dateSubmitted: "10 เม.ย. 2026", status: "ผ่านการตรวจสอบ", risk: "ต่ำ" },
-  { id: "COI-009", name: "นายวิชาญ ชาญศิลป์", department: "IT", position: "Software Developer", coiType: "อื่นๆ", summary: "มีหุ้น startup 2% ที่ไม่เกี่ยวข้องกับธุรกิจ", dateSubmitted: "5 เม.ย. 2026", status: "ผ่านการตรวจสอบ", risk: "ต่ำ" },
-  { id: "COI-010", name: "นายจักรพันธ์ รักเรียน", department: "Finance", position: "Financial Analyst", coiType: "ความสัมพันธ์ส่วนตัว", summary: "คู่สมรสทำงานในสถาบันการเงินที่เป็นคู่ค้า", dateSubmitted: "1 เม.ย. 2026", status: "รอตรวจสอบ", risk: "กลาง" },
-  { id: "COI-011", name: "น.ส.ลักษณา พิพัฒน์", department: "จัดซื้อ", position: "Procurement Officer", coiType: "ผลประโยชน์จากคู่ค้า", summary: "พ่อเป็นเจ้าของบริษัทที่เคยเสนอราคาซื้อขาย", dateSubmitted: "28 มี.ค. 2026", status: "รอตรวจสอบ", risk: "กลาง" },
-]
+// ─── Toast ────────────────────────────────────────────────────────────────────
 
-const statusConfig = {
-  "รอตรวจสอบ": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)", icon: <Clock className="h-3 w-3" /> },
-  "ผ่านการตรวจสอบ": { color: "#22c55e", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)", icon: <CheckCircle2 className="h-3 w-3" /> },
-  "ต้องดำเนินการ": { color: "#ef4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)", icon: <AlertTriangle className="h-3 w-3" /> },
+function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
+  useEffect(() => { const t = setTimeout(onHide, 3000); return () => clearTimeout(t) }, [onHide])
+  return (
+    <div className="fixed bottom-6 right-6 z-[999] rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-xl" style={{ background: PURPLE }}>
+      {msg}
+    </div>
+  )
 }
 
-const riskConfig = {
-  "สูง": { color: "#ef4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)" },
-  "กลาง": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" },
-  "ต่ำ": { color: "#22c55e", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" },
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(d: string | null) {
+  if (!d) return "—"
+  try { return new Date(d).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) }
+  catch { return d }
 }
 
-interface FormState {
-  name: string
-  department: string
-  coiType: string
-  detail: string
-  relationship: string
-  mitigation: string
+const RISK_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  low:    { label: "ต่ำ",   color: "#22c55e", bg: "rgba(34,197,94,0.12)",  border: "rgba(34,197,94,0.35)"  },
+  medium: { label: "กลาง", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" },
+  high:   { label: "สูง",   color: "#ef4444", bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.35)"  },
 }
+
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  pending:         { label: "รอตรวจสอบ",    color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" },
+  reviewed:        { label: "ตรวจสอบแล้ว",  color: "#22c55e", bg: "rgba(34,197,94,0.12)",  border: "rgba(34,197,94,0.35)"  },
+  action_required: { label: "ต้องดำเนินการ",color: "#ef4444", bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.35)"  },
+  closed:          { label: "ปิดแล้ว",      color: "#94a3b8", bg: "rgba(148,163,184,0.12)",border: "rgba(148,163,184,0.35)" },
+}
+
+const COI_TYPE_LABELS: Record<string, string> = {
+  "business":  "ธุรกิจส่วนตัว",
+  "supplier":  "ผลประโยชน์จากคู่ค้า",
+  "personal":  "ความสัมพันธ์ส่วนตัว",
+  "financial": "ผลประโยชน์ทางการเงิน",
+  "other":     "อื่นๆ",
+}
+
+// ─── Create Modal ─────────────────────────────────────────────────────────────
+
+function CreateModal({ onClose, onSave }: {
+  onClose: () => void
+  onSave: (data: Omit<CoiDeclaration, "id" | "status" | "risk_level" | "reviewer_notes" | "reviewer_name" | "reviewed_at">) => Promise<void>
+}) {
+  const [form, setForm] = useState({
+    full_name: "",
+    department: "",
+    position: "",
+    email: "",
+    coi_type: "business",
+    conflict_detail: "",
+    company_relationship: "",
+    proposed_mitigation: "",
+    self_risk_level: "low",
+    declared_at: new Date().toISOString(),
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!form.full_name.trim()) return
+    setSaving(true)
+    await onSave({
+      ...form,
+      department: form.department || null,
+      position: form.position || null,
+      email: form.email || null,
+      conflict_detail: form.conflict_detail || null,
+      company_relationship: form.company_relationship || null,
+      proposed_mitigation: form.proposed_mitigation || null,
+    })
+    setSaving(false)
+  }
+
+  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg bg-[#111827] border-white/10">
+        <DialogHeader>
+          <DialogTitle>ยื่นแบบแจ้ง COI</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">ชื่อ-สกุล *</Label>
+              <input className={inp} value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">อีเมล</Label>
+              <input type="email" className={inp} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">แผนก</Label>
+              <input className={inp} value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} placeholder="แผนก" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ตำแหน่ง</Label>
+              <input className={inp} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} placeholder="ตำแหน่ง" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">ประเภท COI</Label>
+              <select className={inp} value={form.coi_type} onChange={e => setForm(f => ({ ...f, coi_type: e.target.value }))}>
+                {Object.entries(COI_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ระดับความเสี่ยง (ประเมินตนเอง)</Label>
+              <select className={inp} value={form.self_risk_level} onChange={e => setForm(f => ({ ...f, self_risk_level: e.target.value }))}>
+                <option value="low">ต่ำ</option>
+                <option value="medium">กลาง</option>
+                <option value="high">สูง</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">รายละเอียดความขัดแย้ง</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.conflict_detail} onChange={e => setForm(f => ({ ...f, conflict_detail: e.target.value }))} placeholder="รายละเอียด..." />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">ความสัมพันธ์กับบริษัท</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={2} value={form.company_relationship} onChange={e => setForm(f => ({ ...f, company_relationship: e.target.value }))} placeholder="ความสัมพันธ์..." />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">มาตรการจัดการที่เสนอ</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={2} value={form.proposed_mitigation} onChange={e => setForm(f => ({ ...f, proposed_mitigation: e.target.value }))} placeholder="มาตรการ..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
+            {saving ? "กำลังบันทึก..." : "ยื่นแบบแจ้ง"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Edit Modal (reviewer) ────────────────────────────────────────────────────
+
+function EditModal({ initial, onClose, onSave }: {
+  initial: CoiDeclaration
+  onClose: () => void
+  onSave: (data: Partial<CoiDeclaration>) => Promise<void>
+}) {
+  const [form, setForm] = useState({
+    status: initial.status,
+    risk_level: initial.risk_level,
+    reviewer_notes: initial.reviewer_notes ?? "",
+    reviewer_name: initial.reviewer_name ?? "",
+  })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave({ ...form, reviewed_at: new Date().toISOString() })
+    setSaving(false)
+  }
+
+  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md bg-[#111827] border-white/10">
+        <DialogHeader>
+          <DialogTitle>อัปเดตสถานะ — {initial.full_name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block">สถานะ</Label>
+              <select className={inp} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="pending">รอตรวจสอบ</option>
+                <option value="reviewed">ตรวจสอบแล้ว</option>
+                <option value="action_required">ต้องดำเนินการ</option>
+                <option value="closed">ปิดแล้ว</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">ระดับความเสี่ยง</Label>
+              <select className={inp} value={form.risk_level} onChange={e => setForm(f => ({ ...f, risk_level: e.target.value }))}>
+                <option value="low">ต่ำ</option>
+                <option value="medium">กลาง</option>
+                <option value="high">สูง</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">ชื่อผู้ตรวจสอบ</Label>
+            <input className={inp} value={form.reviewer_name} onChange={e => setForm(f => ({ ...f, reviewer_name: e.target.value }))} placeholder="ชื่อผู้ตรวจสอบ" />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">หมายเหตุผู้ตรวจสอบ</Label>
+            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.reviewer_notes} onChange={e => setForm(f => ({ ...f, reviewer_notes: e.target.value }))} placeholder="หมายเหตุ..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CoiPage() {
-  const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState<FormState>({
-    name: "", department: "", coiType: "", detail: "", relationship: "", mitigation: "",
-  })
+  const supabase = createClient()
+  const [items, setItems] = useState<CoiDeclaration[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [createModal, setCreateModal] = useState(false)
+  const [editModal, setEditModal] = useState<CoiDeclaration | null>(null)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
-  const totalDeclarations = declarations.length
-  const pendingReview = declarations.filter(d => d.status === "รอตรวจสอบ").length
-  const flagged = declarations.filter(d => d.risk === "สูง").length
-  const clean = declarations.filter(d => d.status === "ผ่านการตรวจสอบ").length
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(false)
+    const { data, error: err } = await supabase.from("gov_coi_declarations").select("*").order("declared_at", { ascending: false })
+    if (err) { setError(true); setLoading(false); return }
+    setItems(data ?? [])
+    setLoading(false)
+  }, [supabase])
 
-  const handleFormChange = (field: keyof FormState, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }))
+  useEffect(() => { loadData() }, [loadData])
+
+  async function createItem(data: Omit<CoiDeclaration, "id" | "status" | "risk_level" | "reviewer_notes" | "reviewer_name" | "reviewed_at">) {
+    await supabase.from("gov_coi_declarations").insert({
+      ...data,
+      status: "pending",
+      risk_level: data.self_risk_level,
+    })
+    setCreateModal(false)
+    setToast("ยื่นแบบแจ้งสำเร็จ")
+    loadData()
   }
+
+  async function updateItem(id: string, data: Partial<CoiDeclaration>) {
+    await supabase.from("gov_coi_declarations").update(data).eq("id", id)
+    setEditModal(null)
+    setToast("อัปเดตสำเร็จ")
+    loadData()
+  }
+
+  async function deleteItem(id: string) {
+    if (!window.confirm("ต้องการลบรายการนี้?")) return
+    await supabase.from("gov_coi_declarations").delete().eq("id", id)
+    setToast("ลบสำเร็จ")
+    loadData()
+  }
+
+  const total = items.length
+  const pending = items.filter(i => i.status === "pending").length
+  const highRisk = items.filter(i => i.risk_level === "high").length
+  const reviewed = items.filter(i => i.status === "reviewed" || i.status === "closed").length
 
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
       <main className="flex-1 ml-56 p-8">
+        {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
+        {createModal && <CreateModal onClose={() => setCreateModal(false)} onSave={createItem} />}
+        {editModal && <EditModal initial={editModal} onClose={() => setEditModal(null)} onSave={data => updateItem(editModal.id, data)} />}
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Conflict of Interest</h1>
-            <p className="text-muted-foreground text-sm">บริหารจัดการการแจ้งความขัดแย้งทางผลประโยชน์</p>
+            <Link href="/governance" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors">
+              <ArrowLeft className="h-4 w-4" />← กลับ
+            </Link>
+            <div className="flex items-center gap-3 mb-2">
+              <div style={{ background: PURPLE_BG, border: `1px solid ${PURPLE_BORDER}`, borderRadius: 10, padding: "8px 10px" }}>
+                <Scale className="h-5 w-5" style={{ color: PURPLE }} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Conflict of Interest</h1>
+                <p className="text-muted-foreground text-sm">ความขัดแย้งทางผลประโยชน์</p>
+              </div>
+            </div>
           </div>
-          <Button
-            onClick={() => setModalOpen(true)}
-            style={{ background: PURPLE, color: "#fff" }}
-            className="hover:opacity-90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            ยื่นแบบแจ้งความขัดแย้งทางผลประโยชน์
+          <Button onClick={() => setCreateModal(true)} style={{ background: PURPLE, color: "#fff" }} className="hover:opacity-90">
+            <Plus className="h-4 w-4 mr-2" />ยื่นแบบแจ้ง COI
           </Button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
-            { label: "ยื่นทั้งหมด (ปีนี้)", value: totalDeclarations, color: PURPLE, bg: PURPLE_BG, border: PURPLE_BORDER },
-            { label: "รอตรวจสอบ", value: pendingReview, color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)" },
-            { label: "ความเสี่ยงสูง (Flagged)", value: flagged, color: "#ef4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)" },
-            { label: "ผ่านการตรวจสอบ", value: clean, color: "#22c55e", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" },
+            { label: "ทั้งหมด",       value: total,    color: PURPLE,    bg: PURPLE_BG,                     border: PURPLE_BORDER                    },
+            { label: "รอตรวจสอบ",    value: pending,  color: "#f59e0b", bg: "rgba(245,158,11,0.12)",        border: "rgba(245,158,11,0.35)"          },
+            { label: "ความเสี่ยงสูง", value: highRisk, color: "#ef4444", bg: "rgba(239,68,68,0.12)",         border: "rgba(239,68,68,0.35)"           },
+            { label: "ผ่านแล้ว",      value: reviewed, color: "#22c55e", bg: "rgba(34,197,94,0.12)",         border: "rgba(34,197,94,0.35)"           },
           ].map((s, i) => (
-            <Card key={i} style={{ background: s.bg, border: `1px solid ${s.border}` }}>
+            <Card key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
               <CardContent className="pt-4">
-                <p className="text-3xl font-bold" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-xs mt-1" style={{ color: s.color, opacity: 0.8 }}>{s.label}</p>
+                <div style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: "8px 12px", display: "inline-block", marginBottom: 6 }}>
+                  {loading ? <div className="animate-pulse h-7 w-8 bg-white/10 rounded" /> : <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>}
+                </div>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Table */}
-        <Card style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4" style={{ color: PURPLE }} />
-              รายการแจ้งความขัดแย้งทางผลประโยชน์
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
-                    {["รหัส", "ชื่อ-สกุล", "แผนก", "ตำแหน่ง", "ประเภท COI", "รายละเอียดย่อ", "วันที่ยื่น", "สถานะ", "ความเสี่ยง"].map(h => (
-                      <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {declarations.map((d, idx) => {
-                    const sc = statusConfig[d.status]
-                    const rc = riskConfig[d.risk]
-                    return (
-                      <tr
-                        key={d.id}
-                        style={{
-                          borderBottom: "1px solid rgba(255,255,255,0.04)",
-                          background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)",
-                        }}
-                      >
-                        <td className="py-3 px-4">
-                          <span className="text-xs font-mono" style={{ color: PURPLE }}>{d.id}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div style={{ background: PURPLE_BG, borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              <User className="h-3.5 w-3.5" style={{ color: PURPLE }} />
-                            </div>
-                            <span className="font-medium text-foreground whitespace-nowrap">{d.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">{d.department}</td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">{d.position}</td>
-                        <td className="py-3 px-4">
-                          <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap" style={{
-                            background: PURPLE_BG, color: PURPLE, border: `1px solid ${PURPLE_BORDER}`
-                          }}>
-                            {d.coiType}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-xs text-muted-foreground max-w-[200px]">
-                          <p className="truncate" title={d.summary}>{d.summary}</p>
-                        </td>
-                        <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{d.dateSubmitted}</td>
-                        <td className="py-3 px-4">
-                          <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
-                            background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`
-                          }}>
-                            {sc.icon}{d.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{
-                            background: rc.bg, color: rc.color, border: `1px solid ${rc.border}`
-                          }}>
-                            {d.risk === "สูง" && <Flag className="h-3 w-3 inline mr-1" />}
-                            {d.risk}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Modal */}
-        {modalOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ background: "rgba(0,0,0,0.7)" }}
-            onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}
-          >
-            <div style={{
-              background: "#0C1A2E",
-              border: `1px solid ${PURPLE_BORDER}`,
-              borderRadius: 16,
-              width: "100%",
-              maxWidth: 560,
-              maxHeight: "90vh",
-              overflowY: "auto",
-              padding: 32,
-            }}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Scale className="h-5 w-5" style={{ color: PURPLE }} />
-                  <h2 className="text-lg font-bold text-foreground">ยื่นแบบแจ้งความขัดแย้งทางผลประโยชน์</h2>
-                </div>
-                <button onClick={() => setModalOpen(false)} style={{ color: "#6b7280" }}>
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">ชื่อ-สกุล *</label>
-                  <Input
-                    placeholder="กรอกชื่อ-สกุล"
-                    className="bg-secondary border-border"
-                    value={form.name}
-                    onChange={e => handleFormChange("name", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">แผนก *</label>
-                  <Input
-                    placeholder="แผนก"
-                    className="bg-secondary border-border"
-                    value={form.department}
-                    onChange={e => handleFormChange("department", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">ประเภท COI *</label>
-                  <Select value={form.coiType} onValueChange={v => handleFormChange("coiType", v)}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="เลือกประเภท COI" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      <SelectItem value="ธุรกิจส่วนตัว">ธุรกิจส่วนตัว</SelectItem>
-                      <SelectItem value="ผลประโยชน์จากคู่ค้า">ผลประโยชน์จากคู่ค้า</SelectItem>
-                      <SelectItem value="ความสัมพันธ์ส่วนตัว">ความสัมพันธ์ส่วนตัว</SelectItem>
-                      <SelectItem value="อื่นๆ">อื่นๆ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">รายละเอียดความขัดแย้ง *</label>
-                  <textarea
-                    placeholder="อธิบายรายละเอียดความขัดแย้งทางผลประโยชน์..."
-                    className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 resize-none"
-                    style={{ minHeight: 80 }}
-                    value={form.detail}
-                    onChange={e => handleFormChange("detail", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">ความสัมพันธ์กับบริษัท</label>
-                  <Input
-                    placeholder="เช่น คู่ค้า ลูกค้า หุ้นส่วน..."
-                    className="bg-secondary border-border"
-                    value={form.relationship}
-                    onChange={e => handleFormChange("relationship", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block">มาตรการจัดการที่เสนอ</label>
-                  <textarea
-                    placeholder="เสนอแนะมาตรการป้องกัน เช่น ถอนตัวจากการตัดสินใจ, แจ้งหัวหน้างาน..."
-                    className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 resize-none"
-                    style={{ minHeight: 70 }}
-                    value={form.mitigation}
-                    onChange={e => handleFormChange("mitigation", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <Button variant="outline" className="border-border" onClick={() => setModalOpen(false)}>
-                  ยกเลิก
-                </Button>
-                <Button style={{ background: PURPLE, color: "#fff" }} className="hover:opacity-90" onClick={() => setModalOpen(false)}>
-                  ยื่นแบบแจ้ง
-                </Button>
-              </div>
-            </div>
+        {error && (
+          <div className="mb-6 rounded-lg p-4 text-sm font-medium" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+            เกิดข้อผิดพลาดในการโหลดข้อมูล
           </div>
         )}
 
+        {/* Table */}
+        {loading ? (
+          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="animate-pulse h-14 rounded-lg bg-white/5" />)}</div>
+        ) : !error && (
+          <Card style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <CardContent className="pt-0 px-0 pb-0">
+              {items.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Scale className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-lg font-medium">ยังไม่มีการแจ้ง COI</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+                        {["ชื่อ", "แผนก", "ตำแหน่ง", "ประเภท COI", "วันที่ยื่น", "ความเสี่ยง", "สถานะ", ""].map(h => (
+                          <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.flatMap(item => {
+                        const risk = RISK_CFG[item.risk_level] ?? RISK_CFG.low
+                        const status = STATUS_CFG[item.status] ?? STATUS_CFG.pending
+                        const isExpanded = expandedRow === item.id
+                        const rows = [
+                          <tr key={item.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                            <td className="py-3 px-4 font-medium text-foreground">{item.full_name}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">{item.department || "—"}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">{item.position || "—"}</td>
+                            <td className="py-3 px-4">
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: PURPLE_BG, color: PURPLE, border: `1px solid ${PURPLE_BORDER}` }}>
+                                {COI_TYPE_LABELS[item.coi_type] ?? item.coi_type}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-xs text-muted-foreground">{fmt(item.declared_at)}</td>
+                            <td className="py-3 px-4">
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: risk.color, background: risk.bg, border: `1px solid ${risk.border}` }}>
+                                {risk.label}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color: status.color, background: status.bg, border: `1px solid ${status.border}` }}>
+                                {status.label}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => setExpandedRow(isExpanded ? null : item.id)} className="p-1.5 rounded hover:bg-white/10 transition-colors">
+                                  {isExpanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                                </button>
+                                <button onClick={() => setEditModal(item)} className="p-1.5 rounded hover:bg-white/10 transition-colors">
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                </button>
+                                <button onClick={() => deleteItem(item.id)} className="p-1.5 rounded hover:bg-red-500/20 transition-colors">
+                                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ]
+                        if (isExpanded) {
+                          rows.push(
+                            <tr key={`${item.id}-detail`} style={{ background: "rgba(155,127,255,0.04)" }}>
+                              <td colSpan={8} className="px-6 py-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  {item.conflict_detail && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-muted-foreground mb-1">รายละเอียดความขัดแย้ง</p>
+                                      <p className="text-sm text-foreground">{item.conflict_detail}</p>
+                                    </div>
+                                  )}
+                                  {item.company_relationship && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-muted-foreground mb-1">ความสัมพันธ์กับบริษัท</p>
+                                      <p className="text-sm text-foreground">{item.company_relationship}</p>
+                                    </div>
+                                  )}
+                                  {item.proposed_mitigation && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-muted-foreground mb-1">มาตรการที่เสนอ</p>
+                                      <p className="text-sm text-foreground">{item.proposed_mitigation}</p>
+                                    </div>
+                                  )}
+                                  {item.reviewer_notes && (
+                                    <div>
+                                      <p className="text-xs font-semibold text-muted-foreground mb-1">หมายเหตุผู้ตรวจสอบ {item.reviewer_name ? `(${item.reviewer_name})` : ""}</p>
+                                      <p className="text-sm text-foreground">{item.reviewer_notes}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        }
+                        return rows
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   )
