@@ -85,6 +85,7 @@ const navGroups = [
       { title: "Policy Management", href: "/policies",
         badge: { label: "New", bg: C.purpleBg, color: C.purple } },
     ],
+    hideLabel: true,
   },
   {
     id: "risk",
@@ -203,20 +204,22 @@ export function SidebarNav() {
           return (
             <div key={group.id} className="mb-1">
               {/* Section header chip */}
-              <div
-                className="flex items-center gap-1.5 rounded-md px-2 py-1.5 mb-0.5"
-                style={{ background: groupActive ? group.accentBg : "transparent" }}
-              >
-                <span style={{ color: groupActive ? group.accentColor : C.dim }}>
-                  {group.icon}
-                </span>
-                <span
-                  className="text-[10px] font-bold tracking-widest uppercase"
-                  style={{ color: groupActive ? group.accentColor : C.dim }}
+              {!(group as any).hideLabel && (
+                <div
+                  className="flex items-center gap-1.5 rounded-md px-2 py-1.5 mb-0.5"
+                  style={{ background: groupActive ? group.accentBg : "transparent" }}
                 >
-                  {group.label}
-                </span>
-              </div>
+                  <span style={{ color: groupActive ? group.accentColor : C.dim }}>
+                    {group.icon}
+                  </span>
+                  <span
+                    className="text-[10px] font-bold tracking-widest uppercase"
+                    style={{ color: groupActive ? group.accentColor : C.dim }}
+                  >
+                    {group.label}
+                  </span>
+                </div>
+              )}
 
               {/* Items */}
               <div className="space-y-0.5 pl-1">
