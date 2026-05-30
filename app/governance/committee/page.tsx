@@ -25,7 +25,7 @@ const PURPLE_BORDER = "rgba(155,127,255,0.35)"
 
 interface Committee {
   id: string
-  name_th: string
+  name: string
   name_en: string
   committee_type: string
   chair_name: string
@@ -39,7 +39,7 @@ interface Committee {
 interface CommitteeMember {
   id: string
   committee_id: string
-  full_name: string
+  name: string
   position: string
   member_type: string
   email: string | null
@@ -116,7 +116,7 @@ function CommitteeModal({ initial, onClose, onSave }: {
   onSave: (data: Omit<Committee, "id">) => Promise<void>
 }) {
   const [form, setForm] = useState({
-    name_th: initial?.name_th ?? "",
+    name: initial?.name ?? "",
     name_en: initial?.name_en ?? "",
     committee_type: initial?.committee_type ?? "board",
     chair_name: initial?.chair_name ?? "",
@@ -129,7 +129,7 @@ function CommitteeModal({ initial, onClose, onSave }: {
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    if (!form.name_th.trim()) return
+    if (!form.name.trim()) return
     setSaving(true)
     await onSave({ ...form, established_date: form.established_date || null, mandate: form.mandate || null })
     setSaving(false)
@@ -148,7 +148,7 @@ function CommitteeModal({ initial, onClose, onSave }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs mb-1 block">ชื่อคณะกรรมการ (Thai) *</Label>
-              <input className={inp} value={form.name_th} onChange={e => setForm(f => ({ ...f, name_th: e.target.value }))} placeholder="คณะกรรมการ..." />
+              <input className={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="คณะกรรมการ..." />
             </div>
             <div>
               <Label className="text-xs mb-1 block">ชื่อ (English)</Label>
@@ -222,7 +222,7 @@ function MemberModal({ committeeId, initial, onClose, onSave }: {
 }) {
   const [form, setForm] = useState({
     committee_id: committeeId,
-    full_name: initial?.full_name ?? "",
+    name: initial?.name ?? "",
     position: initial?.position ?? "",
     member_type: initial?.member_type ?? "management",
     email: initial?.email ?? "",
@@ -232,7 +232,7 @@ function MemberModal({ committeeId, initial, onClose, onSave }: {
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    if (!form.full_name.trim()) return
+    if (!form.name.trim()) return
     setSaving(true)
     await onSave({ ...form, email: form.email || null, start_date: form.start_date || null, notes: form.notes || null })
     setSaving(false)
@@ -249,7 +249,7 @@ function MemberModal({ committeeId, initial, onClose, onSave }: {
         <div className="space-y-3">
           <div>
             <Label className="text-xs mb-1 block">ชื่อ-สกุล *</Label>
-            <input className={inp} value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
+            <input className={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อ-สกุล" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -404,7 +404,7 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
 
   const loadMembers = useCallback(async () => {
     setLoadingMembers(true)
-    const { data } = await supabase.from("gov_committee_members").select("*").eq("committee_id", committee.id).order("full_name")
+    const { data } = await supabase.from("gov_committee_members").select("*").eq("committee_id", committee.id).order("name")
     setMembers(data ?? [])
     setLoadingMembers(false)
   }, [supabase, committee.id])
@@ -489,7 +489,7 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-bold text-foreground">{committee.name_th}</h3>
+                    <h3 className="font-bold text-foreground">{committee.name}</h3>
                     <StatusBadge status={committee.status} />
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{committee.name_en}</p>
@@ -573,7 +573,7 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                                   <div style={{ background: PURPLE_BG, borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                     <User className="h-3.5 w-3.5" style={{ color: PURPLE }} />
                                   </div>
-                                  <span className="font-medium text-foreground">{m.full_name}</span>
+                                  <span className="font-medium text-foreground">{m.name}</span>
                                 </div>
                               </td>
                               <td className="py-2.5 pr-4 text-sm text-muted-foreground">{m.position}</td>
@@ -670,7 +670,7 @@ export default function CommitteePage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(false)
-    const { data, error: err } = await supabase.from("gov_committees").select("*").order("name_th")
+    const { data, error: err } = await supabase.from("gov_committees").select("*").order("name")
     if (err) { setError(true); setLoading(false); return }
     setCommittees(data ?? [])
 

@@ -23,7 +23,7 @@ const PURPLE_BORDER = "rgba(155,127,255,0.35)"
 
 interface CocRecord {
   id: string
-  full_name: string
+  employee_name: string
   department: string | null
   position: string | null
   email: string | null
@@ -78,7 +78,7 @@ function CreateModal({ onClose, onSave }: {
   onSave: (data: Omit<CocRecord, "id" | "acknowledged_at" | "reminder_sent_at">) => Promise<void>
 }) {
   const [form, setForm] = useState({
-    full_name: "",
+    employee_name: "",
     department: "",
     position: "",
     email: "",
@@ -89,7 +89,7 @@ function CreateModal({ onClose, onSave }: {
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    if (!form.full_name.trim()) return
+    if (!form.employee_name.trim()) return
     setSaving(true)
     await onSave({
       ...form,
@@ -114,7 +114,7 @@ function CreateModal({ onClose, onSave }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs mb-1 block">ชื่อ-สกุล *</Label>
-              <input className={inp} value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
+              <input className={inp} value={form.employee_name} onChange={e => setForm(f => ({ ...f, employee_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
             </div>
             <div>
               <Label className="text-xs mb-1 block">อีเมล</Label>
@@ -176,7 +176,7 @@ function BulkImportModal({ onClose, onSave }: {
     const records = lines.map(line => {
       const parts = line.split(",").map(p => p.trim())
       return {
-        full_name: parts[0] ?? "",
+        employee_name: parts[0] ?? "",
         department: parts[1] ?? null,
         position: parts[2] ?? null,
         email: parts[3] ?? null,
@@ -184,7 +184,7 @@ function BulkImportModal({ onClose, onSave }: {
         due_date: null,
         notes: null,
       }
-    }).filter(r => r.full_name)
+    }).filter(r => r.employee_name)
     await onSave(records)
     setSaving(false)
   }
@@ -249,7 +249,7 @@ function EditModal({ initial, onClose, onSave }: {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-sm bg-[#111827] border-white/10">
         <DialogHeader>
-          <DialogTitle>แก้ไข — {initial.full_name}</DialogTitle>
+          <DialogTitle>แก้ไข — {initial.employee_name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -301,7 +301,7 @@ export default function CodeOfConductPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(false)
-    const { data, error: err } = await supabase.from("gov_coc_acknowledgments").select("*").order("full_name")
+    const { data, error: err } = await supabase.from("gov_coc_acknowledgments").select("*").order("employee_name")
     if (err) { setError(true); setLoading(false); return }
     setItems(data ?? [])
     setLoading(false)
@@ -543,7 +543,7 @@ export default function CodeOfConductPage() {
                           const statusCfg = STATUS_CFG[st]
                           return (
                             <tr key={item.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                              <td className="py-2.5 pr-4 font-medium text-foreground">{item.full_name}</td>
+                              <td className="py-2.5 pr-4 font-medium text-foreground">{item.employee_name}</td>
                               <td className="py-2.5 pr-4 text-muted-foreground text-xs">{item.department || "—"}</td>
                               <td className="py-2.5 pr-4 text-muted-foreground text-xs">{item.position || "—"}</td>
                               <td className="py-2.5 pr-4">

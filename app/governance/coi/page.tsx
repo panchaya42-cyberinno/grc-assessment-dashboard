@@ -21,7 +21,7 @@ const PURPLE_BORDER = "rgba(155,127,255,0.35)"
 
 interface CoiDeclaration {
   id: string
-  full_name: string
+  declarer_name: string
   department: string | null
   position: string | null
   email: string | null
@@ -85,7 +85,7 @@ function CreateModal({ onClose, onSave }: {
   onSave: (data: Omit<CoiDeclaration, "id" | "status" | "risk_level" | "reviewer_notes" | "reviewer_name" | "reviewed_at">) => Promise<void>
 }) {
   const [form, setForm] = useState({
-    full_name: "",
+    declarer_name: "",
     department: "",
     position: "",
     email: "",
@@ -99,7 +99,7 @@ function CreateModal({ onClose, onSave }: {
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
-    if (!form.full_name.trim()) return
+    if (!form.declarer_name.trim()) return
     setSaving(true)
     await onSave({
       ...form,
@@ -125,7 +125,7 @@ function CreateModal({ onClose, onSave }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs mb-1 block">ชื่อ-สกุล *</Label>
-              <input className={inp} value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
+              <input className={inp} value={form.declarer_name} onChange={e => setForm(f => ({ ...f, declarer_name: e.target.value }))} placeholder="ชื่อ-สกุล" />
             </div>
             <div>
               <Label className="text-xs mb-1 block">อีเมล</Label>
@@ -209,7 +209,7 @@ function EditModal({ initial, onClose, onSave }: {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-[#111827] border-white/10">
         <DialogHeader>
-          <DialogTitle>อัปเดตสถานะ — {initial.full_name}</DialogTitle>
+          <DialogTitle>อัปเดตสถานะ — {initial.declarer_name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -386,7 +386,7 @@ export default function CoiPage() {
                         const isExpanded = expandedRow === item.id
                         const rows = [
                           <tr key={item.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                            <td className="py-3 px-4 font-medium text-foreground">{item.full_name}</td>
+                            <td className="py-3 px-4 font-medium text-foreground">{item.declarer_name}</td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">{item.department || "—"}</td>
                             <td className="py-3 px-4 text-sm text-muted-foreground">{item.position || "—"}</td>
                             <td className="py-3 px-4">
