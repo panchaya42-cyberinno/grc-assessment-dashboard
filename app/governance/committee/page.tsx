@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { SidebarNav } from "@/components/grc/sidebar-nav"
@@ -14,12 +14,17 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Users, ChevronDown, ChevronRight, Plus, Calendar,
   Building2, User, Pencil, Trash2, ArrowLeft, CheckCircle2,
-  XCircle, Clock,
+  XCircle, Clock, FileText, Upload, ExternalLink, File,
 } from "lucide-react"
 
 const PURPLE = "#9B7FFF"
 const PURPLE_BG = "rgba(155,127,255,0.10)"
 const PURPLE_BORDER = "rgba(155,127,255,0.35)"
+
+// Modal style tokens — brighter than page background
+const MODAL_BG   = "#1e2d45"
+const INP_BG     = "#152234"
+const INP_BORDER = "rgba(255,255,255,0.20)"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +39,17 @@ interface Committee {
   established_date: string | null
   mandate: string | null
   status: string
+  documents: CommitteeDoc[]
+}
+
+interface CommitteeDoc {
+  id: string
+  name: string
+  doc_type: string
+  notes: string
+  url: string
+  uploaded_at: string
+  size?: string
 }
 
 interface CommitteeMember {
@@ -43,8 +59,9 @@ interface CommitteeMember {
   position: string
   member_type: string
   email: string | null
-  start_date: string | null
-  notes: string | null
+  joined_date: string | null
+  left_date: string | null
+  is_active: boolean
 }
 
 interface Meeting {
@@ -55,9 +72,8 @@ interface Meeting {
   meeting_date: string | null
   location: string | null
   status: string
-  agenda: string | null
   minutes: string | null
-  resolutions: string | null
+  resolutions: any[]
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -108,12 +124,16 @@ function MemberTypeBadge({ type }: { type: string }) {
   )
 }
 
+// shared input/select class
+const inp = `w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[${PURPLE}] text-white`
+const inpStyle = { background: INP_BG, border: `1px solid ${INP_BORDER}` }
+
 // ─── Committee Modal ──────────────────────────────────────────────────────────
 
 function CommitteeModal({ initial, onClose, onSave }: {
   initial?: Committee | null
   onClose: () => void
-  onSave: (data: Omit<Committee, "id">) => Promise<void>
+  onSave: (data: any) => Promise<void>
 }) {
   const [form, setForm] = useState({
     name: initial?.name ?? "",
@@ -135,38 +155,35 @@ function CommitteeModal({ initial, onClose, onSave }: {
     setSaving(false)
   }
 
-  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
-  const sel = inp
-
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg bg-[#111827] border-white/10">
+      <DialogContent className="max-w-lg border-white/10" style={{ background: MODAL_BG }}>
         <DialogHeader>
-          <DialogTitle>{initial ? "แก้ไขคณะกรรมการ" : "เพิ่มคณะกรรมการ"}</DialogTitle>
+          <DialogTitle className="text-white">{initial ? "แก้ไขคณะกรรมการ" : "เพิ่มคณะกรรมการ"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">ชื่อคณะกรรมการ (Thai) *</Label>
-              <input className={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="คณะกรรมการ..." />
+              <Label className="text-xs mb-1 block text-slate-300">ชื่อคณะกรรมการ (Thai) *</Label>
+              <input className={inp} style={inpStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="คณะกรรมการ..." />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">ชื่อ (English)</Label>
-              <input className={inp} value={form.name_en} onChange={e => setForm(f => ({ ...f, name_en: e.target.value }))} placeholder="Committee..." />
+              <Label className="text-xs mb-1 block text-slate-300">ชื่อ (English)</Label>
+              <input className={inp} style={inpStyle} value={form.name_en} onChange={e => setForm(f => ({ ...f, name_en: e.target.value }))} placeholder="Committee..." />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">ประเภท</Label>
-              <select className={sel} value={form.committee_type} onChange={e => setForm(f => ({ ...f, committee_type: e.target.value }))}>
+              <Label className="text-xs mb-1 block text-slate-300">ประเภท</Label>
+              <select className={inp} style={inpStyle} value={form.committee_type} onChange={e => setForm(f => ({ ...f, committee_type: e.target.value }))}>
                 {[["board","Board"],["audit","Audit"],["risk","Risk"],["it","IT"],["compliance","Compliance"],["ethics","Ethics"],["other","Other"]].map(([v,l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </div>
             <div>
-              <Label className="text-xs mb-1 block">ความถี่การประชุม</Label>
-              <select className={sel} value={form.meeting_frequency} onChange={e => setForm(f => ({ ...f, meeting_frequency: e.target.value }))}>
+              <Label className="text-xs mb-1 block text-slate-300">ความถี่การประชุม</Label>
+              <select className={inp} style={inpStyle} value={form.meeting_frequency} onChange={e => setForm(f => ({ ...f, meeting_frequency: e.target.value }))}>
                 {[["weekly","รายสัปดาห์"],["monthly","รายเดือน"],["quarterly","รายไตรมาส"],["biannual","ราย 6 เดือน"],["annual","รายปี"],["adhoc","เฉพาะกิจ"]].map(([v,l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
@@ -175,34 +192,34 @@ function CommitteeModal({ initial, onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">ประธาน</Label>
-              <input className={inp} value={form.chair_name} onChange={e => setForm(f => ({ ...f, chair_name: e.target.value }))} placeholder="ชื่อประธาน" />
+              <Label className="text-xs mb-1 block text-slate-300">ประธาน</Label>
+              <input className={inp} style={inpStyle} value={form.chair_name} onChange={e => setForm(f => ({ ...f, chair_name: e.target.value }))} placeholder="ชื่อประธาน" />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">ตำแหน่งประธาน</Label>
-              <input className={inp} value={form.chair_position} onChange={e => setForm(f => ({ ...f, chair_position: e.target.value }))} placeholder="ตำแหน่ง" />
+              <Label className="text-xs mb-1 block text-slate-300">ตำแหน่งประธาน</Label>
+              <input className={inp} style={inpStyle} value={form.chair_position} onChange={e => setForm(f => ({ ...f, chair_position: e.target.value }))} placeholder="ตำแหน่ง" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">วันที่จัดตั้ง</Label>
-              <input type="date" className={inp} value={form.established_date} onChange={e => setForm(f => ({ ...f, established_date: e.target.value }))} />
+              <Label className="text-xs mb-1 block text-slate-300">วันที่จัดตั้ง</Label>
+              <input type="date" className={inp} style={inpStyle} value={form.established_date} onChange={e => setForm(f => ({ ...f, established_date: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">สถานะ</Label>
-              <select className={sel} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+              <Label className="text-xs mb-1 block text-slate-300">สถานะ</Label>
+              <select className={inp} style={inpStyle} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
           </div>
           <div>
-            <Label className="text-xs mb-1 block">อำนาจหน้าที่</Label>
-            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.mandate ?? ""} onChange={e => setForm(f => ({ ...f, mandate: e.target.value }))} placeholder="อำนาจหน้าที่..." />
+            <Label className="text-xs mb-1 block text-slate-300">อำนาจหน้าที่</Label>
+            <textarea className={inp} style={{ ...inpStyle, resize: "vertical" }} rows={3} value={form.mandate ?? ""} onChange={e => setForm(f => ({ ...f, mandate: e.target.value }))} placeholder="อำนาจหน้าที่..." />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button variant="outline" onClick={onClose} className="border-white/20 text-slate-300 hover:text-white">ยกเลิก</Button>
           <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
             {saving ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
@@ -226,39 +243,38 @@ function MemberModal({ committeeId, initial, onClose, onSave }: {
     position: initial?.position ?? "",
     member_type: initial?.member_type ?? "management",
     email: initial?.email ?? "",
-    start_date: initial?.start_date?.slice(0, 10) ?? "",
-    notes: initial?.notes ?? "",
+    joined_date: initial?.joined_date?.slice(0, 10) ?? "",
+    left_date: initial?.left_date?.slice(0, 10) ?? "",
+    is_active: initial?.is_active ?? true,
   })
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
     if (!form.name.trim()) return
     setSaving(true)
-    await onSave({ ...form, email: form.email || null, start_date: form.start_date || null, notes: form.notes || null })
+    await onSave({ ...form, email: form.email || null, joined_date: form.joined_date || null, left_date: form.left_date || null })
     setSaving(false)
   }
 
-  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
-
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-[#111827] border-white/10">
+      <DialogContent className="max-w-md border-white/10" style={{ background: MODAL_BG }}>
         <DialogHeader>
-          <DialogTitle>{initial ? "แก้ไขสมาชิก" : "เพิ่มสมาชิก"}</DialogTitle>
+          <DialogTitle className="text-white">{initial ? "แก้ไขสมาชิก" : "เพิ่มสมาชิก"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label className="text-xs mb-1 block">ชื่อ-สกุล *</Label>
-            <input className={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อ-สกุล" />
+            <Label className="text-xs mb-1 block text-slate-300">ชื่อ-สกุล *</Label>
+            <input className={inp} style={inpStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อ-สกุล" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">ตำแหน่ง</Label>
-              <input className={inp} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} placeholder="ตำแหน่ง" />
+              <Label className="text-xs mb-1 block text-slate-300">ตำแหน่ง</Label>
+              <input className={inp} style={inpStyle} value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} placeholder="ตำแหน่ง" />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">ประเภทสมาชิก</Label>
-              <select className={inp} value={form.member_type} onChange={e => setForm(f => ({ ...f, member_type: e.target.value }))}>
+              <Label className="text-xs mb-1 block text-slate-300">ประเภทสมาชิก</Label>
+              <select className={inp} style={inpStyle} value={form.member_type} onChange={e => setForm(f => ({ ...f, member_type: e.target.value }))}>
                 <option value="executive">Executive</option>
                 <option value="independent">Independent</option>
                 <option value="management">Management</option>
@@ -268,21 +284,29 @@ function MemberModal({ committeeId, initial, onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">อีเมล</Label>
-              <input type="email" className={inp} value={form.email ?? ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@..." />
+              <Label className="text-xs mb-1 block text-slate-300">อีเมล</Label>
+              <input type="email" className={inp} style={inpStyle} value={form.email ?? ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@..." />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">วันที่เริ่ม</Label>
-              <input type="date" className={inp} value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+              <Label className="text-xs mb-1 block text-slate-300">วันที่เริ่ม</Label>
+              <input type="date" className={inp} style={inpStyle} value={form.joined_date} onChange={e => setForm(f => ({ ...f, joined_date: e.target.value }))} />
             </div>
           </div>
-          <div>
-            <Label className="text-xs mb-1 block">หมายเหตุ</Label>
-            <Textarea className="bg-white/5 border-white/10 text-sm" rows={2} value={form.notes ?? ""} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs mb-1 block text-slate-300">วันที่สิ้นสุด</Label>
+              <input type="date" className={inp} style={inpStyle} value={form.left_date} onChange={e => setForm(f => ({ ...f, left_date: e.target.value }))} />
+            </div>
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
+                <span className="text-sm text-slate-300">ยังอยู่ในตำแหน่ง</span>
+              </label>
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button variant="outline" onClick={onClose} className="border-white/20 text-slate-300 hover:text-white">ยกเลิก</Button>
           <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
             {saving ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
@@ -298,7 +322,7 @@ function MeetingModal({ committeeId, initial, onClose, onSave }: {
   committeeId: string
   initial?: Meeting | null
   onClose: () => void
-  onSave: (data: Omit<Meeting, "id">) => Promise<void>
+  onSave: (data: any) => Promise<void>
 }) {
   const [form, setForm] = useState({
     committee_id: committeeId,
@@ -307,36 +331,33 @@ function MeetingModal({ committeeId, initial, onClose, onSave }: {
     meeting_date: initial?.meeting_date ? initial.meeting_date.slice(0, 16) : "",
     location: initial?.location ?? "",
     status: initial?.status ?? "scheduled",
-    agenda: initial?.agenda ?? "",
     minutes: initial?.minutes ?? "",
-    resolutions: initial?.resolutions ?? "",
+    resolutions: Array.isArray(initial?.resolutions) ? initial.resolutions : [],
   })
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
     if (!form.title.trim()) return
     setSaving(true)
-    await onSave({ ...form, meeting_date: form.meeting_date || null, location: form.location || null, agenda: form.agenda || null, minutes: form.minutes || null, resolutions: form.resolutions || null })
+    await onSave({ ...form, meeting_date: form.meeting_date || null, location: form.location || null, minutes: form.minutes || null })
     setSaving(false)
   }
 
-  const inp = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#9B7FFF]"
-
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg bg-[#111827] border-white/10">
+      <DialogContent className="max-w-lg border-white/10" style={{ background: MODAL_BG }}>
         <DialogHeader>
-          <DialogTitle>{initial ? "แก้ไขการประชุม" : "เพิ่มการประชุม"}</DialogTitle>
+          <DialogTitle className="text-white">{initial ? "แก้ไขการประชุม" : "บันทึกการประชุม"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">หมายเลขการประชุม</Label>
-              <input className={inp} value={form.meeting_number} onChange={e => setForm(f => ({ ...f, meeting_number: e.target.value }))} placeholder="1/2568" />
+              <Label className="text-xs mb-1 block text-slate-300">ครั้งที่ / เลขที่</Label>
+              <input className={inp} style={inpStyle} value={form.meeting_number} onChange={e => setForm(f => ({ ...f, meeting_number: e.target.value }))} placeholder="1/2568" />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">สถานะ</Label>
-              <select className={inp} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+              <Label className="text-xs mb-1 block text-slate-300">สถานะ</Label>
+              <select className={inp} style={inpStyle} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 <option value="scheduled">Scheduled</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
@@ -345,36 +366,105 @@ function MeetingModal({ committeeId, initial, onClose, onSave }: {
             </div>
           </div>
           <div>
-            <Label className="text-xs mb-1 block">ชื่อการประชุม *</Label>
-            <input className={inp} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="ชื่อการประชุม" />
+            <Label className="text-xs mb-1 block text-slate-300">ชื่อการประชุม *</Label>
+            <input className={inp} style={inpStyle} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="ชื่อการประชุม" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs mb-1 block">วันที่/เวลา</Label>
-              <input type="datetime-local" className={inp} value={form.meeting_date} onChange={e => setForm(f => ({ ...f, meeting_date: e.target.value }))} />
+              <Label className="text-xs mb-1 block text-slate-300">วันที่/เวลา</Label>
+              <input type="datetime-local" className={inp} style={inpStyle} value={form.meeting_date} onChange={e => setForm(f => ({ ...f, meeting_date: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">สถานที่</Label>
-              <input className={inp} value={form.location ?? ""} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="สถานที่" />
+              <Label className="text-xs mb-1 block text-slate-300">สถานที่</Label>
+              <input className={inp} style={inpStyle} value={form.location ?? ""} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="สถานที่" />
             </div>
           </div>
           <div>
-            <Label className="text-xs mb-1 block">วาระการประชุม</Label>
-            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.agenda ?? ""} onChange={e => setForm(f => ({ ...f, agenda: e.target.value }))} placeholder="วาระ..." />
-          </div>
-          <div>
-            <Label className="text-xs mb-1 block">บันทึกการประชุม</Label>
-            <Textarea className="bg-white/5 border-white/10 text-sm" rows={3} value={form.minutes ?? ""} onChange={e => setForm(f => ({ ...f, minutes: e.target.value }))} placeholder="บันทึก..." />
-          </div>
-          <div>
-            <Label className="text-xs mb-1 block">มติที่ประชุม</Label>
-            <Textarea className="bg-white/5 border-white/10 text-sm" rows={2} value={form.resolutions ?? ""} onChange={e => setForm(f => ({ ...f, resolutions: e.target.value }))} placeholder="มติ..." />
+            <Label className="text-xs mb-1 block text-slate-300">บันทึกการประชุม / รายงานการประชุม</Label>
+            <textarea className={inp} style={{ ...inpStyle, resize: "vertical" }} rows={4} value={form.minutes ?? ""} onChange={e => setForm(f => ({ ...f, minutes: e.target.value }))} placeholder="สรุปบันทึกการประชุม..." />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-white/10">ยกเลิก</Button>
+          <Button variant="outline" onClick={onClose} className="border-white/20 text-slate-300 hover:text-white">ยกเลิก</Button>
           <Button disabled={saving} onClick={handleSave} style={{ background: PURPLE, color: "#fff" }}>
             {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Add Document Modal ───────────────────────────────────────────────────────
+
+function AddDocModal({ onClose, onAdd }: {
+  onClose: () => void
+  onAdd: (doc: Omit<CommitteeDoc, "id">) => Promise<void>
+}) {
+  const [form, setForm] = useState({ name: "", doc_type: "ประกาศแต่งตั้ง", notes: "", url: "", size: "" })
+  const [saving, setSaving] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const sizeKB = Math.round(f.size / 1024)
+    const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`
+    setForm(prev => ({ ...prev, name: prev.name || f.name, size: sizeStr }))
+  }
+
+  async function handleAdd() {
+    if (!form.name.trim()) return
+    setSaving(true)
+    await onAdd({ ...form, uploaded_at: new Date().toISOString() })
+    setSaving(false)
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md border-white/10" style={{ background: MODAL_BG }}>
+        <DialogHeader>
+          <DialogTitle className="text-white">เพิ่มเอกสาร</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs mb-1 block text-slate-300">ประเภทเอกสาร</Label>
+            <select className={inp} style={inpStyle} value={form.doc_type} onChange={e => setForm(f => ({ ...f, doc_type: e.target.value }))}>
+              {["ประกาศแต่งตั้ง","คำสั่ง","ระเบียบ","กฎบัตร (Charter)","รายงานการประชุม","อื่นๆ"].map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block text-slate-300">ชื่อเอกสาร *</Label>
+            <input className={inp} style={inpStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อเอกสาร..." />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block text-slate-300">ลิงก์ไฟล์ (URL) หรืออัปโหลด</Label>
+            <input className={inp} style={inpStyle} value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://... หรือ path ไฟล์" />
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-white/5 text-slate-300"
+              style={{ background: INP_BG, border: `1px solid ${INP_BORDER}` }}
+            >
+              <Upload className="h-4 w-4" />
+              เลือกไฟล์จากเครื่อง {form.size && <span className="text-purple-400">({form.size})</span>}
+            </button>
+            <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onChange={handleFileChange} />
+            <p className="text-xs text-slate-500 mt-1">รองรับ PDF, Word, Excel, รูปภาพ (ขนาดสูงสุด 20 MB)</p>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block text-slate-300">หมายเหตุ</Label>
+            <textarea className={inp} style={{ ...inpStyle, resize: "vertical" }} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="หมายเหตุ..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="border-white/20 text-slate-300 hover:text-white">ยกเลิก</Button>
+          <Button disabled={saving || !form.name.trim()} onClick={handleAdd} style={{ background: PURPLE, color: "#fff" }}>
+            {saving ? "กำลังบันทึก..." : "เพิ่มเอกสาร"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -392,13 +482,15 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
 }) {
   const supabase = createClient()
   const [expanded, setExpanded] = useState(false)
-  const [activeTab, setActiveTab] = useState<"members" | "meetings">("members")
+  const [activeTab, setActiveTab] = useState<"members" | "meetings" | "documents">("members")
   const [members, setMembers] = useState<CommitteeMember[]>([])
   const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [docs, setDocs] = useState<CommitteeDoc[]>(committee.documents ?? [])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [loadingMeetings, setLoadingMeetings] = useState(false)
   const [memberModal, setMemberModal] = useState<{ open: boolean; initial?: CommitteeMember | null }>({ open: false })
   const [meetingModal, setMeetingModal] = useState<{ open: boolean; initial?: Meeting | null }>({ open: false })
+  const [docModal, setDocModal] = useState(false)
   const [expandedMeeting, setExpandedMeeting] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -443,7 +535,7 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
     onRefresh()
   }
 
-  async function saveMeeting(data: Omit<Meeting, "id">) {
+  async function saveMeeting(data: any) {
     if (meetingModal.initial) {
       await supabase.from("gov_meetings").update(data).eq("id", meetingModal.initial.id)
     } else {
@@ -462,12 +554,41 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
     loadMeetings()
   }
 
+  async function addDoc(docData: Omit<CommitteeDoc, "id">) {
+    const newDoc = { ...docData, id: crypto.randomUUID() }
+    const updated = [...docs, newDoc]
+    await supabase.from("gov_committees").update({ documents: updated }).eq("id", committee.id)
+    setDocs(updated)
+    setDocModal(false)
+    setToast("เพิ่มเอกสารสำเร็จ")
+  }
+
+  async function deleteDoc(docId: string) {
+    if (!window.confirm("ต้องการลบเอกสารนี้?")) return
+    const updated = docs.filter(d => d.id !== docId)
+    await supabase.from("gov_committees").update({ documents: updated }).eq("id", committee.id)
+    setDocs(updated)
+    setToast("ลบเอกสารสำเร็จ")
+  }
+
   const meetingsThisMonth = meetings.filter(m => {
     if (!m.meeting_date) return false
     const d = new Date(m.meeting_date)
     const now = new Date()
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   }).length
+
+  const typeColor: Record<string, string> = {
+    board: "#9B7FFF", audit: "#38bdf8", risk: "#f87171",
+    it: "#22c55e", compliance: "#f59e0b", ethics: "#e879f9", other: "#94a3b8",
+  }
+  const tColor = typeColor[committee.committee_type] ?? "#94a3b8"
+
+  const TABS = [
+    { key: "members",   label: `สมาชิก (${members.length})` },
+    { key: "meetings",  label: `การประชุม (${meetings.length})` },
+    { key: "documents", label: `เอกสาร (${docs.length})` },
+  ] as const
 
   return (
     <>
@@ -478,19 +599,25 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
       {meetingModal.open && (
         <MeetingModal committeeId={committee.id} initial={meetingModal.initial} onClose={() => setMeetingModal({ open: false })} onSave={saveMeeting} />
       )}
+      {docModal && (
+        <AddDocModal onClose={() => setDocModal(false)} onAdd={addDoc} />
+      )}
       <Card style={{ background: "rgba(255,255,255,0.03)", border: expanded ? `1px solid ${PURPLE_BORDER}` : "1px solid rgba(255,255,255,0.08)", transition: "border-color 0.2s" }}>
         <CardContent className="pt-5">
           {/* Header row */}
           <div className="flex items-start gap-4">
             <button className="flex-1 text-left" onClick={() => setExpanded(e => !e)}>
               <div className="flex items-start gap-4">
-                <div style={{ background: PURPLE_BG, border: `1px solid ${PURPLE_BORDER}`, borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
-                  <Building2 className="h-5 w-5" style={{ color: PURPLE }} />
+                <div style={{ background: `${tColor}18`, border: `1px solid ${tColor}40`, borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
+                  <Building2 className="h-5 w-5" style={{ color: tColor }} />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-3 mb-1 flex-wrap">
                     <h3 className="font-bold text-foreground">{committee.name}</h3>
                     <StatusBadge status={committee.status} />
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium uppercase" style={{ color: tColor, background: `${tColor}15`, border: `1px solid ${tColor}30` }}>
+                      {committee.committee_type}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{committee.name_en}</p>
                   <div className="flex items-center gap-6 flex-wrap">
@@ -500,8 +627,13 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                     </span>
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5 text-amber-400" />
-                      ประชุม: <span className="font-medium text-foreground ml-1">{committee.meeting_frequency}</span>
+                      <span className="font-medium text-foreground ml-1">{committee.meeting_frequency}</span>
                     </span>
+                    {docs.length > 0 && (
+                      <span className="flex items-center gap-1 text-xs" style={{ color: "#9B7FFF" }}>
+                        <FileText className="h-3 w-3" />{docs.length} เอกสาร
+                      </span>
+                    )}
                     {meetingsThisMonth > 0 && (
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(56,189,248,0.12)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.3)" }}>
                         {meetingsThisMonth} ประชุมเดือนนี้
@@ -524,25 +656,38 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
             </div>
           </div>
 
+          {/* Mandate preview */}
+          {!expanded && committee.mandate && (
+            <p className="mt-2 ml-[58px] text-xs text-muted-foreground line-clamp-1">{committee.mandate}</p>
+          )}
+
           {/* Expanded panel */}
           {expanded && (
             <div className="mt-5 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              {/* Mandate */}
+              {committee.mandate && (
+                <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: "rgba(155,127,255,0.06)", border: "1px solid rgba(155,127,255,0.15)" }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: PURPLE }}>อำนาจหน้าที่</p>
+                  <p className="text-muted-foreground leading-relaxed">{committee.mandate}</p>
+                </div>
+              )}
+
               {/* Tabs */}
               <div className="flex gap-2 mb-4">
-                {(["members", "meetings"] as const).map(t => (
-                  <button key={t} onClick={() => setActiveTab(t)}
+                {TABS.map(t => (
+                  <button key={t.key} onClick={() => setActiveTab(t.key)}
                     className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
                     style={{
-                      background: activeTab === t ? PURPLE : "rgba(255,255,255,0.04)",
-                      color: activeTab === t ? "#fff" : "#94a3b8",
-                      border: activeTab === t ? `1px solid ${PURPLE}` : "1px solid rgba(255,255,255,0.08)",
+                      background: activeTab === t.key ? PURPLE : "rgba(255,255,255,0.04)",
+                      color: activeTab === t.key ? "#fff" : "#94a3b8",
+                      border: activeTab === t.key ? `1px solid ${PURPLE}` : "1px solid rgba(255,255,255,0.08)",
                     }}>
-                    {t === "members" ? "สมาชิก" : "การประชุม"}
+                    {t.label}
                   </button>
                 ))}
               </div>
 
-              {/* Members tab */}
+              {/* ── Members tab ── */}
               {activeTab === "members" && (
                 <div>
                   <div className="flex justify-end mb-3">
@@ -559,7 +704,7 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                       <table className="w-full text-sm">
                         <thead>
                           <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                            {["#", "ชื่อ-สกุล", "ตำแหน่ง", "ประเภท", "อีเมล", "วันที่เริ่ม", ""].map(h => (
+                            {["#", "ชื่อ-สกุล", "ตำแหน่ง", "ประเภท", "อีเมล", "วันที่เริ่ม", "สถานะ", ""].map(h => (
                               <th key={h} className="text-left pb-2 pr-4 text-xs font-medium text-muted-foreground">{h}</th>
                             ))}
                           </tr>
@@ -579,7 +724,13 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                               <td className="py-2.5 pr-4 text-sm text-muted-foreground">{m.position}</td>
                               <td className="py-2.5 pr-4"><MemberTypeBadge type={m.member_type} /></td>
                               <td className="py-2.5 pr-4 text-xs text-muted-foreground">{m.email || "—"}</td>
-                              <td className="py-2.5 pr-4 text-xs text-muted-foreground">{fmt(m.start_date)}</td>
+                              <td className="py-2.5 pr-4 text-xs text-muted-foreground">{fmt(m.joined_date)}</td>
+                              <td className="py-2.5 pr-4">
+                                {m.is_active
+                                  ? <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ color: "#22c55e", background: "rgba(34,197,94,0.12)" }}>ดำรงตำแหน่ง</span>
+                                  : <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ color: "#94a3b8", background: "rgba(148,163,184,0.1)" }}>พ้นตำแหน่ง</span>
+                                }
+                              </td>
                               <td className="py-2.5">
                                 <div className="flex gap-1">
                                   <button onClick={() => setMemberModal({ open: true, initial: m })} className="p-1 rounded hover:bg-white/10">
@@ -599,12 +750,12 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                 </div>
               )}
 
-              {/* Meetings tab */}
+              {/* ── Meetings tab ── */}
               {activeTab === "meetings" && (
                 <div>
                   <div className="flex justify-end mb-3">
                     <Button size="sm" onClick={() => setMeetingModal({ open: true, initial: null })} style={{ background: PURPLE, color: "#fff" }}>
-                      <Plus className="h-3.5 w-3.5 mr-1" />เพิ่มการประชุม
+                      <Plus className="h-3.5 w-3.5 mr-1" />บันทึกการประชุม
                     </Button>
                   </div>
                   {loadingMeetings ? (
@@ -617,8 +768,8 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                         <div key={m.id} className="rounded-lg" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
                           <div className="flex items-center gap-3 p-3">
                             <button className="flex-1 text-left" onClick={() => setExpandedMeeting(expandedMeeting === m.id ? null : m.id)}>
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-mono" style={{ color: PURPLE }}>{m.meeting_number || "—"}</span>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="text-xs font-mono font-semibold" style={{ color: PURPLE }}>{m.meeting_number || "—"}</span>
                                 <span className="text-sm font-medium text-foreground">{m.title}</span>
                                 <StatusBadge status={m.status} />
                                 <span className="text-xs text-muted-foreground">{fmt(m.meeting_date)}</span>
@@ -635,13 +786,65 @@ function CommitteeCard({ committee, onEdit, onDelete, onRefresh }: {
                               {expandedMeeting === m.id ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                             </div>
                           </div>
-                          {expandedMeeting === m.id && (
-                            <div className="px-3 pb-3 pt-0 space-y-2" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                              {m.agenda && <div><p className="text-xs font-semibold text-muted-foreground mb-1">วาระ</p><p className="text-sm text-foreground whitespace-pre-line">{m.agenda}</p></div>}
-                              {m.minutes && <div><p className="text-xs font-semibold text-muted-foreground mb-1">บันทึก</p><p className="text-sm text-foreground whitespace-pre-line">{m.minutes}</p></div>}
-                              {m.resolutions && <div><p className="text-xs font-semibold text-muted-foreground mb-1">มติ</p><p className="text-sm text-foreground whitespace-pre-line">{m.resolutions}</p></div>}
+                          {expandedMeeting === m.id && m.minutes && (
+                            <div className="px-3 pb-3 pt-1 space-y-2" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                              <p className="text-xs font-semibold text-muted-foreground mb-1">บันทึกการประชุม</p>
+                              <p className="text-sm text-foreground whitespace-pre-line">{m.minutes}</p>
                             </div>
                           )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Documents tab ── */}
+              {activeTab === "documents" && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-muted-foreground">ประกาศแต่งตั้ง คำสั่ง กฎบัตร และเอกสารอ้างอิงอื่นๆ</p>
+                    <Button size="sm" onClick={() => setDocModal(true)} style={{ background: PURPLE, color: "#fff" }}>
+                      <Upload className="h-3.5 w-3.5 mr-1" />เพิ่มเอกสาร
+                    </Button>
+                  </div>
+                  {docs.length === 0 ? (
+                    <div className="text-center py-8 rounded-lg" style={{ border: "2px dashed rgba(155,127,255,0.2)" }}>
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" style={{ color: PURPLE }} />
+                      <p className="text-sm text-muted-foreground">ยังไม่มีเอกสาร</p>
+                      <p className="text-xs text-muted-foreground mt-1">เพิ่มประกาศแต่งตั้ง หรือเอกสารอ้างอิงของคณะกรรมการ</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {docs.map(doc => (
+                        <div key={doc.id} className="flex items-center gap-3 rounded-lg p-3"
+                          style={{ background: "rgba(155,127,255,0.05)", border: "1px solid rgba(155,127,255,0.15)" }}>
+                          <div style={{ background: PURPLE_BG, borderRadius: 8, padding: 8, flexShrink: 0 }}>
+                            <File className="h-4 w-4" style={{ color: PURPLE }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                              <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0" style={{ color: PURPLE, background: PURPLE_BG, border: `1px solid ${PURPLE_BORDER}` }}>
+                                {doc.doc_type}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <p className="text-xs text-muted-foreground">{fmt(doc.uploaded_at)}</p>
+                              {doc.size && <span className="text-xs text-muted-foreground">{doc.size}</span>}
+                              {doc.notes && <span className="text-xs text-muted-foreground">· {doc.notes}</span>}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {doc.url && (
+                              <a href={doc.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-white/10">
+                                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-blue-400" />
+                              </a>
+                            )}
+                            <button onClick={() => deleteDoc(doc.id)} className="p-1.5 rounded hover:bg-red-500/20">
+                              <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -672,9 +875,13 @@ export default function CommitteePage() {
     setError(null)
     const { data, error: err } = await supabase.from("gov_committees").select("*").order("name")
     if (err) { setError(err.message); setLoading(false); return }
-    setCommittees(data ?? [])
+    // Parse documents JSON if returned as string
+    const parsed = (data ?? []).map((c: any) => ({
+      ...c,
+      documents: Array.isArray(c.documents) ? c.documents : [],
+    }))
+    setCommittees(parsed)
 
-    // Load aggregate stats
     const [membersRes, meetingsRes] = await Promise.all([
       supabase.from("gov_committee_members").select("id", { count: "exact", head: true }),
       supabase.from("gov_meetings").select("meeting_date").gte("meeting_date", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
@@ -685,7 +892,7 @@ export default function CommitteePage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  async function saveCommittee(data: Omit<Committee, "id">) {
+  async function saveCommittee(data: any) {
     if (committeeModal.initial) {
       await supabase.from("gov_committees").update(data).eq("id", committeeModal.initial.id)
     } else {
@@ -719,7 +926,7 @@ export default function CommitteePage() {
               <ArrowLeft className="h-4 w-4" />← กลับ
             </Link>
             <h1 className="text-3xl font-bold text-foreground">Committee Structure</h1>
-            <p className="text-muted-foreground text-sm">โครงสร้างคณะกรรมการ สมาชิก และการประชุม</p>
+            <p className="text-muted-foreground text-sm">โครงสร้างคณะกรรมการ สมาชิก การประชุม และเอกสารประกาศแต่งตั้ง</p>
           </div>
           <Button onClick={() => setCommitteeModal({ open: true, initial: null })} style={{ background: PURPLE, color: "#fff" }} className="hover:opacity-90">
             <Plus className="h-4 w-4 mr-2" />เพิ่มคณะกรรมการ
@@ -747,23 +954,18 @@ export default function CommitteePage() {
           ))}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 rounded-lg p-4 text-sm font-medium" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
             ❌ {error}
           </div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="animate-pulse rounded-xl h-24 bg-white/5" />
-            ))}
+            {[1, 2, 3].map(i => <div key={i} className="animate-pulse rounded-xl h-24 bg-white/5" />)}
           </div>
         )}
 
-        {/* Committee list */}
         {!loading && !error && (
           <div className="space-y-4">
             {committees.length === 0 ? (
