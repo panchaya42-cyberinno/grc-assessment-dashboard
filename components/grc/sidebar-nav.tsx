@@ -84,7 +84,6 @@ const navGroups = [
     items: [
       { title: "Policy Management", href: "/policies",
         badge: { label: "New", bg: C.purpleBg, color: C.purple } },
-      { title: "PDPA Governance",   href: "/pdpa" },
     ],
   },
   {
@@ -100,6 +99,8 @@ const navGroups = [
       { title: "OT / ICS Security", href: "/ot-security" },
       { title: "Threat Intelligence", href: "/threat-intel",
         badge: { label: "3", bg: "rgba(255,107,107,0.15)", color: C.coral } },
+      { title: "Cyber Drill",         href: "/cyber-drill",
+        badge: { label: "AI", bg: C.purpleBg, color: C.purple } },
     ],
   },
   {
@@ -109,10 +110,18 @@ const navGroups = [
     accentColor: C.green,
     accentBg: C.greenBg,
     items: [
-      { title: "Frameworks & Standards", href: "/frameworks" },
-      { title: "Control Mapping",        href: "/controls"   },
-      { title: "Evidence Collection",    href: "/evidence",
-        badge: { label: "Auto", bg: "rgba(34,197,94,0.15)", color: "#16A34A" } },
+      { title: "Compliance Hub",         href: "/compliance",
+        badge: { label: "New", bg: "rgba(34,197,94,0.15)", color: "#16A34A" } },
+      { title: "Framework Mapping",      href: "/compliance/frameworks" },
+      { title: "Control Library",        href: "/compliance/controls" },
+      { title: "Evidence Collection",    href: "/compliance/evidence" },
+      { title: "Audit Management",       href: "/compliance/audits" },
+      { title: "Gap Assessment",         href: "/compliance/gaps" },
+      { title: "Monitoring",             href: "/compliance/monitoring" },
+      { title: "Reports",                href: "/compliance/reports" },
+      { title: "Attestation & Training", href: "/compliance/training" },
+      { _divider: true, label: "Data Privacy / PDPA" } as any,
+      { title: "PDPA Governance",        href: "/pdpa" },
     ],
   },
   {
@@ -124,6 +133,8 @@ const navGroups = [
     items: [
       { title: "ISO 27001:2022 IA", href: "/pre-audit" },
       { title: "ISO 27799:2025",    href: "/iso27799" },
+      { title: "อว.3 IT Audit",      href: "/ow3-audit",
+        badge: { label: "คปภ.", bg: "rgba(99,102,241,0.15)", color: "#6366F1" } },
       { title: "PDPA Audit",        href: "/pdpa-audit" },
       { title: "CRA-NCSA",          href: "/cra-ncsa" },
       { title: "CII Audit",         href: "/cii-audit" },
@@ -184,9 +195,9 @@ export function SidebarNav() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
         {navGroups.filter(g => g.items.length > 0).map((group) => {
-          // check if any item in this group is active (for group header highlight)
-          const groupActive = group.items.some(item =>
-            pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+          // check if any link item in this group is active
+          const groupActive = group.items.some((item: any) =>
+            !item._divider && (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)))
           )
 
           return (
@@ -194,9 +205,7 @@ export function SidebarNav() {
               {/* Section header chip */}
               <div
                 className="flex items-center gap-1.5 rounded-md px-2 py-1.5 mb-0.5"
-                style={{
-                  background: groupActive ? group.accentBg : "transparent",
-                }}
+                style={{ background: groupActive ? group.accentBg : "transparent" }}
               >
                 <span style={{ color: groupActive ? group.accentColor : C.dim }}>
                   {group.icon}
@@ -211,7 +220,29 @@ export function SidebarNav() {
 
               {/* Items */}
               <div className="space-y-0.5 pl-1">
-                {group.items.map((item) => {
+                {group.items.map((item: any, idx: number) => {
+                  // ── Sub-section divider label ──────────────────
+                  if (item._divider) {
+                    return (
+                      <div
+                        key={`divider-${idx}`}
+                        className="flex items-center gap-2 px-2 pt-2 pb-1"
+                      >
+                        <span
+                          className="text-[9.5px] font-bold tracking-widest uppercase truncate"
+                          style={{ color: group.accentColor, opacity: 0.7 }}
+                        >
+                          {item.label}
+                        </span>
+                        <span
+                          className="flex-1 h-px"
+                          style={{ background: group.accentColor, opacity: 0.15 }}
+                        />
+                      </div>
+                    )
+                  }
+
+                  // ── Regular nav link ───────────────────────────
                   const isActive =
                     pathname === item.href ||
                     (item.href !== "/" && pathname.startsWith(item.href))
@@ -249,16 +280,13 @@ export function SidebarNav() {
                       {/* Dot */}
                       <span
                         className="h-[6px] w-[6px] rounded-full shrink-0 ml-1"
-                        style={{
-                          background: group.accentColor,
-                          opacity: isActive ? 1 : 0.4,
-                        }}
+                        style={{ background: group.accentColor, opacity: isActive ? 1 : 0.4 }}
                       />
 
                       <span className="flex-1 truncate">{item.title}</span>
 
                       {/* Badge */}
-                      {"badge" in item && item.badge && (
+                      {item.badge && (
                         <span
                           className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none shrink-0"
                           style={{ background: item.badge.bg, color: item.badge.color }}
