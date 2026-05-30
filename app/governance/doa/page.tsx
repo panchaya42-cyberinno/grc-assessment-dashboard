@@ -176,19 +176,44 @@ export default function DoaPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(false)
-    const { data, error: err } = await supabase.from("gov_doa_items").select("*").order("category").order("code")
+    const { data, error: err } = await supabase.from("gov_doa_items").select("*").order("sort_order").order("code")
     if (err) { setError(true); setLoading(false); return }
-    setItems(data ?? [])
+    // Map JSONB levels → l1..l5, and English category → Thai
+    const CAT_MAP: Record<string, string> = {
+      financial: "การเงิน", hr: "บุคลากร", it: "IT",
+      contract: "สัญญา", procurement: "จัดซื้อ",
+    }
+    const mapped = (data ?? []).map((item: any) => ({
+      ...item,
+      category: CAT_MAP[item.category] ?? item.category,
+      l1: item.levels?.L1 ?? item.l1 ?? "none",
+      l2: item.levels?.L2 ?? item.l2 ?? "none",
+      l3: item.levels?.L3 ?? item.l3 ?? "none",
+      l4: item.levels?.L4 ?? item.l4 ?? "none",
+      l5: item.levels?.L5 ?? item.l5 ?? "none",
+    }))
+    setItems(mapped)
     setLoading(false)
   }, [supabase])
 
   useEffect(() => { loadData() }, [loadData])
 
   async function saveItem(data: Omit<DoaItem, "id">) {
+    // Convert Thai category → English for DB, and l1..l5 → levels JSONB
+    const CAT_EN: Record<string, string> = {
+      "การเงิน": "financial", "บุคลากร": "hr", "IT": "it",
+      "สัญญา": "contract", "จัดซื้อ": "procurement",
+    }
+    const { l1, l2, l3, l4, l5, ...rest } = data as any
+    const dbData = {
+      ...rest,
+      category: CAT_EN[data.category] ?? data.category,
+      levels: { L1: l1, L2: l2, L3: l3, L4: l4, L5: l5 },
+    }
     if (modal.initial) {
-      await supabase.from("gov_doa_items").update(data).eq("id", modal.initial.id)
+      await supabase.from("gov_doa_items").update(dbData).eq("id", modal.initial.id)
     } else {
-      await supabase.from("gov_doa_items").insert(data)
+      await supabase.from("gov_doa_items").insert(dbData)
     }
     setModal({ open: false })
     setToast("บันทึกสำเร็จ")
