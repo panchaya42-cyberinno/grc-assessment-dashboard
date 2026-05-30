@@ -82,8 +82,15 @@ const navGroups = [
     accentColor: C.purple,
     accentBg: C.purpleBg,
     items: [
-      { title: "Policy Management", href: "/policies",
-        badge: { label: "New", bg: C.purpleBg, color: C.purple } },
+      { title: "Governance Hub", href: "/governance", badge: { label: "New", bg: C.purpleBg, color: C.purple } },
+      { title: "Policy Management", href: "/policies" },
+      { _divider: true, label: "Structure & Authority" } as any,
+      { title: "Committee Structure", href: "/governance/committee" },
+      { title: "Delegation of Authority", href: "/governance/doa" },
+      { _divider: true, label: "Ethics & Integrity" } as any,
+      { title: "Conflict of Interest", href: "/governance/coi" },
+      { title: "Whistleblowing", href: "/governance/whistleblowing" },
+      { title: "Code of Conduct", href: "/governance/code-of-conduct" },
     ],
   },
   {
