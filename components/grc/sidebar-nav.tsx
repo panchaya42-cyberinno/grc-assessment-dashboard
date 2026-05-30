@@ -85,7 +85,6 @@ const navGroups = [
       { title: "Policy Management", href: "/policies",
         badge: { label: "New", bg: C.purpleBg, color: C.purple } },
     ],
-    hideLabel: true,
   },
   {
     id: "risk",
@@ -122,7 +121,7 @@ const navGroups = [
       { title: "Reports",                href: "/compliance/reports" },
       { title: "Attestation & Training", href: "/compliance/training" },
       { _divider: true, label: "Data Privacy / PDPA" } as any,
-      { title: "PDPA Governance",        href: "/pdpa" },
+      { title: "PDPA",                    href: "/pdpa" },
     ],
   },
   {
