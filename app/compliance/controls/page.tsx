@@ -35,7 +35,7 @@ interface Control {
   evidence_req: string | null
   due_date: string | null
   notes: string | null
-  clause?: { clause_number: string; title: string } | null
+  clause?: { clause_number: string; title: string; regulation?: { name: string } | null } | null
 }
 
 interface Clause {
@@ -348,7 +348,7 @@ function ControlsInner() {
     const [ctrlRes, clauseRes] = await Promise.all([
       supabase
         .from("comp_controls")
-        .select("*, clause:comp_clauses(clause_number, title)")
+        .select("*, clause:comp_clauses(clause_number, title, regulation:comp_regulations(name))")
         .order("due_date", { ascending: true, nullsFirst: false }),
       supabase
         .from("comp_clauses")
@@ -571,13 +571,18 @@ function ControlsInner() {
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                         {/* Clause */}
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-4 py-3">
                           {ctrl.clause ? (
-                            <div>
+                            <div className="min-w-[140px]">
+                              {(ctrl.clause as any).regulation?.name && (
+                                <p className="text-xs mb-0.5 max-w-[160px] truncate" style={{ color: "#4B9FFF" }}>
+                                  {(ctrl.clause as any).regulation.name}
+                                </p>
+                              )}
                               <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
                                 {(ctrl.clause as any).clause_number}
                               </span>
-                              <p className="text-xs text-slate-400 mt-0.5 max-w-[140px] truncate">
+                              <p className="text-xs text-slate-400 mt-0.5 max-w-[160px] truncate">
                                 {(ctrl.clause as any).title}
                               </p>
                             </div>

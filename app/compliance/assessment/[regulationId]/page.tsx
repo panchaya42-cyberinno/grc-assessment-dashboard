@@ -267,7 +267,7 @@ export default function AssessmentPage() {
                 <p className="text-sm" style={{ color: "#6B7E96" }}>{reg.name_en}</p>
               )}
               <p className="text-xs mt-1" style={{ color: "#4B9FFF", opacity: 0.7 }}>
-                ประเมินความสอดคล้องรายมาตรา · ISO 14001/27001 – IMAFLC04
+                ประเมินความสอดคล้องรายมาตรา
               </p>
             </div>
           </div>

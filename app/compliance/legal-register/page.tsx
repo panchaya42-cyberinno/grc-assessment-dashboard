@@ -165,7 +165,7 @@ export default function LegalRegisterPage() {
               </span>
             </div>
             <p className="text-sm" style={{ color: "#6B7E96" }}>
-              กำหนดว่ากฎหมาย/มาตรฐานใดบ้างที่องค์กรต้องปฏิบัติตาม · ISO 14001/27001 – IMASLC01
+              กำหนดว่ากฎหมาย/มาตรฐานใดบ้างที่องค์กรต้องปฏิบัติตาม
             </p>
           </div>
           <button
