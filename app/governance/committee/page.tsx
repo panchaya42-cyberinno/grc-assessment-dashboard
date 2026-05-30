@@ -662,16 +662,16 @@ export default function CommitteePage() {
   const supabase = createClient()
   const [committees, setCommittees] = useState<Committee[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [committeeModal, setCommitteeModal] = useState<{ open: boolean; initial?: Committee | null }>({ open: false })
   const [toast, setToast] = useState<string | null>(null)
   const [stats, setStats] = useState({ totalMembers: 0, meetingsThisMonth: 0 })
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    setError(false)
+    setError(null)
     const { data, error: err } = await supabase.from("gov_committees").select("*").order("name")
-    if (err) { setError(true); setLoading(false); return }
+    if (err) { setError(err.message); setLoading(false); return }
     setCommittees(data ?? [])
 
     // Load aggregate stats
@@ -750,7 +750,7 @@ export default function CommitteePage() {
         {/* Error */}
         {error && (
           <div className="mb-6 rounded-lg p-4 text-sm font-medium" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
-            เกิดข้อผิดพลาดในการโหลดข้อมูล
+            ❌ {error}
           </div>
         )}
 
