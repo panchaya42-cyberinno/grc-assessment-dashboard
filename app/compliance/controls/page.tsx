@@ -335,6 +335,7 @@ function ControlsInner() {
 
   const [controls, setControls] = useState<Control[]>([])
   const [clauses, setClauses]   = useState<Clause[]>([])
+  const [regMap, setRegMap]     = useState<Record<string, string>>({})
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState("all")
@@ -345,17 +346,24 @@ function ControlsInner() {
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const [ctrlRes, clauseRes] = await Promise.all([
+    const [ctrlRes, clauseRes, regRes] = await Promise.all([
       supabase
         .from("comp_controls")
-        .select("*, clause:comp_clauses(clause_number, title, regulation:comp_regulations(name))")
+        .select("*, clause:comp_clauses(clause_number, title)")
         .order("due_date", { ascending: true, nullsFirst: false }),
       supabase
         .from("comp_clauses")
-        .select("id, clause_number, title, regulation_id, regulation:comp_regulations(name)")
+        .select("id, clause_number, title, regulation_id")
         .order("clause_number", { ascending: true }),
+      supabase
+        .from("comp_regulations")
+        .select("id, name"),
     ])
     if (ctrlRes.error) { setError(ctrlRes.error.message); setLoading(false); return }
+    // Build regulation name map: regulation_id → name
+    const rm: Record<string, string> = {}
+    ;(regRes.data ?? []).forEach((r: any) => { if (r.id && r.name) rm[r.id] = r.name })
+    setRegMap(rm)
     setControls((ctrlRes.data ?? []) as Control[])
     setClauses((clauseRes.data ?? []) as unknown as Clause[])
     setLoading(false)
@@ -574,22 +582,18 @@ function ControlsInner() {
                         <td className="px-4 py-3">
                           {ctrl.clause ? (() => {
                             const clauseInfo = clauses.find(c => c.id === ctrl.clause_id)
-                            const regName = clauseInfo?.regulation
-                              ? (Array.isArray(clauseInfo.regulation)
-                                  ? (clauseInfo.regulation as any)[0]?.name
-                                  : (clauseInfo.regulation as any).name)
-                              : null
+                            const regName = clauseInfo?.regulation_id ? regMap[clauseInfo.regulation_id] : null
                             return (
                               <div className="min-w-[140px]">
                                 {regName && (
-                                  <p className="text-xs mb-0.5 max-w-[180px] truncate font-medium" style={{ color: "#4B9FFF" }}>
+                                  <p className="text-xs mb-0.5 max-w-[200px] truncate font-medium" style={{ color: "#4B9FFF" }}>
                                     {regName}
                                   </p>
                                 )}
                                 <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
                                   {(ctrl.clause as any).clause_number}
                                 </span>
-                                <p className="text-xs text-slate-400 mt-0.5 max-w-[180px] truncate">
+                                <p className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">
                                   {(ctrl.clause as any).title}
                                 </p>
                               </div>
