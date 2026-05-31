@@ -631,7 +631,7 @@ export default function WebSecurityChecklistPage() {
       <SidebarNav />
 
       <main
-        className="flex-1 ml-56 p-8"
+        className="flex-1 ml-60 p-8"
         style={{ paddingRight: libraryOpen ? "380px" : undefined, transition: "padding-right 0.2s" }}
       >
         {/* ── Header ─────────────────────────────────────────────── */}

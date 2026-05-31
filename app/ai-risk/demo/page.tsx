@@ -544,7 +544,7 @@ export default function AIUseCaseDemoPage() {
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
       
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-60 p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">

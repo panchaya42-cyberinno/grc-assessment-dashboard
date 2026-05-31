@@ -5,151 +5,85 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { LogOut, User, Settings } from "lucide-react"
-import { cn } from "@/lib/utils"
 
-// ── Brand colors ───────────────────────────────────────────────
-const C = {
-  bg2:      "#0C1A2E",
-  border:   "rgba(255,255,255,0.07)",
-  text:     "#E8EDF4",
-  muted:    "#6B7E96",
-  dim:      "#344558",
-  teal:     "#00D4A0",
-  tealBg:   "rgba(0,212,160,0.10)",
-  blue:     "#4B9FFF",
-  blueBg:   "rgba(75,159,255,0.08)",
-  purple:   "#9B7FFF",
-  purpleBg: "rgba(155,127,255,0.10)",
-  coral:    "#FF6B6B",
-  coralBg:  "rgba(255,107,107,0.10)",
-  amber:    "#FFB830",
-  amberBg:  "rgba(255,184,48,0.10)",
-  green:    "#22C55E",
-  greenBg:  "rgba(34,197,94,0.10)",
+// ── Tokens ─────────────────────────────────────────────────────
+const BG      = "#0C1A2E"
+const BORDER  = "rgba(255,255,255,0.07)"
+const TEXT    = "#E8EDF4"
+const MUTED   = "#6B7E96"
+const TEAL    = "#00D4A0"
+
+// ── Module config ───────────────────────────────────────────────
+const MODULES = {
+  overview:   { letter: "⌘", color: TEAL,      bg: "rgba(0,212,160,0.12)",    border: "rgba(0,212,160,0.25)" },
+  governance: { letter: "G", color: "#A78BFA",  bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.30)" },
+  risk:       { letter: "R", color: "#F87171",  bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.30)" },
+  compliance: { letter: "C", color: "#34D399",  bg: "rgba(52,211,153,0.12)",  border: "rgba(52,211,153,0.30)" },
+  audit:      { letter: "A", color: "#FBBF24",  bg: "rgba(251,191,36,0.12)",  border: "rgba(251,191,36,0.30)" },
 }
 
-// ── Group icon SVGs ────────────────────────────────────────────
-const ICONS = {
-  overview: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-    </svg>
-  ),
-  governance: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-    </svg>
-  ),
-  risk: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
-  ),
-  compliance: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-    </svg>
-  ),
-  audit: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
-      <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-    </svg>
-  ),
-}
-
-// ── Navigation structure ───────────────────────────────────────
-const navGroups = [
+// ── Nav data ────────────────────────────────────────────────────
+const NAV = [
   {
-    id: "overview",
-    label: "Overview",
-    icon: ICONS.overview,
-    accentColor: C.teal,
-    accentBg: C.tealBg,
+    id: "overview", label: "Overview", sub: null,
     items: [
       { title: "Dashboard",   href: "/" },
-      { title: "AI Advisory", href: "/advisory",
-        badge: { label: "AI", bg: C.blueBg, color: C.blue } },
+      { title: "AI Advisory", href: "/advisory", badge: { label: "AI", color: "#60A5FA", bg: "rgba(96,165,250,0.15)" } },
     ],
   },
   {
-    id: "governance",
-    label: "Governance",
-    icon: ICONS.governance,
-    accentColor: C.purple,
-    accentBg: C.purpleBg,
+    id: "governance", label: "Governance", sub: "นโยบายและกำกับดูแล",
     items: [
-      { title: "Governance Hub", href: "/governance", badge: { label: "New", bg: C.purpleBg, color: C.purple } },
-      { title: "Policy Management", href: "/policies" },
-      { _divider: true, label: "Structure & Authority" } as any,
-      { title: "Committee Structure", href: "/governance/committee" },
+      { title: "Governance Hub",          href: "/governance", badge: { label: "New", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" } },
+      { title: "Policy Management",       href: "/policies" },
+      { _div: "โครงสร้างองค์กร" },
+      { title: "Committee Structure",     href: "/governance/committee" },
       { title: "Delegation of Authority", href: "/governance/doa" },
-      { _divider: true, label: "Ethics & Integrity" } as any,
-      { title: "Conflict of Interest", href: "/governance/coi" },
-      { title: "Whistleblowing", href: "/governance/whistleblowing" },
-      { title: "Code of Conduct", href: "/governance/code-of-conduct" },
+      { _div: "จริยธรรมและซื่อสัตย์" },
+      { title: "Conflict of Interest",    href: "/governance/coi" },
+      { title: "Whistleblowing",          href: "/governance/whistleblowing" },
+      { title: "Code of Conduct",         href: "/governance/code-of-conduct" },
     ],
   },
   {
-    id: "risk",
-    label: "Risk",
-    icon: ICONS.risk,
-    accentColor: C.coral,
-    accentBg: C.coralBg,
+    id: "risk", label: "Risk", sub: "ประเมินและบริหารความเสี่ยง",
     items: [
-      { title: "Risk Assessment",   href: "/ai-risk" },
-      { title: "Asset Risk",        href: "/asset-risk" },
-      { title: "KRI Dashboard",     href: "/kri-dashboard" },
-      { title: "OT / ICS Security", href: "/ot-security" },
-      { title: "Threat Intelligence", href: "/threat-intel",
-        badge: { label: "3", bg: "rgba(255,107,107,0.15)", color: C.coral } },
-      { title: "Cyber Drill",         href: "/cyber-drill",
-        badge: { label: "AI", bg: C.purpleBg, color: C.purple } },
+      { title: "Risk Assessment",     href: "/ai-risk" },
+      { title: "Asset Risk",          href: "/asset-risk" },
+      { title: "KRI Dashboard",       href: "/kri-dashboard" },
+      { title: "OT / ICS Security",   href: "/ot-security" },
+      { title: "Threat Intelligence", href: "/threat-intel", badge: { label: "3", color: "#F87171", bg: "rgba(248,113,113,0.15)" } },
+      { title: "Cyber Drill",         href: "/cyber-drill",  badge: { label: "AI", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" } },
     ],
   },
   {
-    id: "compliance",
-    label: "Compliance",
-    icon: ICONS.compliance,
-    accentColor: C.green,
-    accentBg: C.greenBg,
+    id: "compliance", label: "Compliance", sub: "กฎหมาย กฎระเบียบ มาตรฐาน",
     items: [
-      { title: "Compliance Hub",         href: "/compliance",
-        badge: { label: "New", bg: "rgba(34,197,94,0.15)", color: "#16A34A" } },
-      { _divider: true, label: "Regulatory Library" } as any,
-      { title: "หน่วยงานกำกับดูแล",      href: "/compliance/regulators" },
-      { title: "กฎหมาย & ข้อกำหนด",     href: "/compliance/regulations" },
-      { title: "มาตรา & Clauses",        href: "/compliance/requirements" },
-      { title: "Internal Controls",      href: "/compliance/controls" },
-      { title: "AI PDF Import",          href: "/compliance/import",
-        badge: { label: "AI", bg: "rgba(139,92,246,0.15)", color: "#8B5CF6" } },
-      { title: "Seed Clauses (Auto)",     href: "/compliance/seed",
-        badge: { label: "NEW", bg: "rgba(34,197,94,0.15)", color: "#22C55E" } },
-      { _divider: true, label: "Legal Register" } as any,
-      { title: "ทะเบียนกฎหมาย",           href: "/compliance/legal-register",
-        badge: { label: "NEW", bg: "rgba(34,197,94,0.15)", color: "#22C55E" } },
-      { _divider: true, label: "Assessment & Audit" } as any,
-      { title: "Gap Assessment",         href: "/compliance/gaps" },
-      { title: "Evidence Collection",    href: "/compliance/evidence" },
-      { title: "Reports",                href: "/compliance/reports" },
-      { _divider: true, label: "Data Privacy / PDPA" } as any,
-      { title: "PDPA",                    href: "/pdpa" },
+      { title: "Compliance Hub",      href: "/compliance", badge: { label: "New", color: "#34D399", bg: "rgba(52,211,153,0.15)" } },
+      { _div: "คลังกฎหมาย" },
+      { title: "หน่วยงานกำกับดูแล",   href: "/compliance/regulators" },
+      { title: "กฎหมาย & ข้อกำหนด",  href: "/compliance/regulations" },
+      { title: "มาตรา & Clauses",     href: "/compliance/requirements" },
+      { title: "Internal Controls",   href: "/compliance/controls" },
+      { _div: "ทะเบียนกฎหมาย" },
+      { title: "ทะเบียนกฎหมาย",       href: "/compliance/legal-register", badge: { label: "NEW", color: "#34D399", bg: "rgba(52,211,153,0.15)" } },
+      { _div: "ประเมินความสอดคล้อง" },
+      { title: "Gap Assessment",      href: "/compliance/gaps" },
+      { title: "Evidence Collection", href: "/compliance/evidence" },
+      { title: "Reports",             href: "/compliance/reports" },
+      { _div: "เครื่องมือ AI" },
+      { title: "AI PDF Import",       href: "/compliance/import", badge: { label: "AI", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" } },
+      { title: "Seed Clauses",        href: "/compliance/seed",   badge: { label: "AI", color: "#A78BFA", bg: "rgba(167,139,250,0.15)" } },
+      { _div: "Data Privacy" },
+      { title: "PDPA",                href: "/pdpa" },
     ],
   },
   {
-    id: "audit",
-    label: "Audit",
-    icon: ICONS.audit,
-    accentColor: C.amber,
-    accentBg: C.amberBg,
+    id: "audit", label: "Audit", sub: "ตรวจสอบและประเมินมาตรฐาน",
     items: [
       { title: "ISO 27001:2022 IA", href: "/pre-audit" },
       { title: "ISO 27799:2025",    href: "/iso27799" },
-      { title: "อว.3 IT Audit",      href: "/ow3-audit",
-        badge: { label: "คปภ.", bg: "rgba(99,102,241,0.15)", color: "#6366F1" } },
+      { title: "อว.3 IT Audit",     href: "/ow3-audit", badge: { label: "คปภ.", color: "#818CF8", bg: "rgba(129,140,248,0.15)" } },
       { title: "PDPA Audit",        href: "/pdpa-audit" },
       { title: "CRA-NCSA",          href: "/cra-ncsa" },
       { title: "CII Audit",         href: "/cii-audit" },
@@ -162,152 +96,141 @@ const navGroups = [
 ]
 
 export function SidebarNav() {
-  const pathname = usePathname()
-  const router   = useRouter()
-  const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [signingOut, setSigningOut] = useState(false)
+  const pathname   = usePathname()
+  const router     = useRouter()
+  const [email, setEmail]       = useState<string | null>(null)
+  const [signingOut, setSignOut] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null)
-    })
+    createClient().auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null))
   }, [])
 
-  async function handleSignOut() {
-    setSigningOut(true)
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh()
+  async function signOut() {
+    setSignOut(true)
+    await createClient().auth.signOut()
+    router.push("/login"); router.refresh()
   }
 
   return (
-    <aside
-      className="fixed left-0 top-0 z-40 h-screen w-56 flex flex-col"
-      style={{ background: C.bg2, borderRight: `1px solid ${C.border}` }}
-    >
-      {/* Brand */}
-      <div
-        className="flex h-14 items-center gap-2.5 px-5 shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div style={{ color: C.teal }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-60 flex flex-col"
+      style={{ background: BG, borderRight: `1px solid ${BORDER}` }}>
+
+      {/* ── Brand ── */}
+      <div className="flex h-14 items-center gap-3 px-4 shrink-0"
+        style={{ borderBottom: `1px solid ${BORDER}` }}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
+          style={{ background: "rgba(0,212,160,0.15)", border: "1px solid rgba(0,212,160,0.3)" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
           </svg>
         </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-[14px] font-bold" style={{ color: C.teal, fontFamily: "'DM Serif Display', serif" }}>
-            CyberInno
-          </span>
-          <span className="text-[9px] tracking-widest uppercase" style={{ color: C.muted }}>
-            AI GRC Platform
-          </span>
+        <div>
+          <div className="text-[13px] font-bold leading-tight" style={{ color: TEAL }}>CyberInno</div>
+          <div className="text-[9px] tracking-widest uppercase" style={{ color: MUTED }}>AI GRC Platform</div>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-        {navGroups.filter(g => g.items.length > 0).map((group) => {
-          // check if any link item in this group is active
+      {/* ── Nav ── */}
+      <nav className="flex-1 overflow-y-auto py-2">
+        {NAV.map(group => {
+          const mod = MODULES[group.id as keyof typeof MODULES]
           const groupActive = group.items.some((item: any) =>
-            !item._divider && (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)))
+            !item._div && (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)))
           )
 
           return (
             <div key={group.id} className="mb-1">
-              {/* Section header chip */}
-              {!(group as any).hideLabel && (
-                <div
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1.5 mb-0.5"
-                  style={{ background: groupActive ? group.accentBg : "transparent" }}
-                >
-                  <span style={{ color: groupActive ? group.accentColor : C.dim }}>
-                    {group.icon}
-                  </span>
-                  <span
-                    className="text-[10px] font-bold tracking-widest uppercase"
-                    style={{ color: groupActive ? group.accentColor : C.dim }}
-                  >
-                    {group.label}
-                  </span>
-                </div>
-              )}
 
-              {/* Items */}
-              <div className="space-y-0.5 pl-1">
+              {/* ── Module header ── */}
+              <div className="mx-2 mb-1 rounded-lg px-2.5 py-2"
+                style={{
+                  background: groupActive ? mod.bg : "rgba(255,255,255,0.02)",
+                  border: `1px solid ${groupActive ? mod.border : "rgba(255,255,255,0.05)"}`,
+                }}>
+                <div className="flex items-center gap-2">
+                  {/* Letter badge */}
+                  {group.id !== "overview" ? (
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-black"
+                      style={{
+                        background: groupActive ? mod.color : "rgba(255,255,255,0.06)",
+                        color: groupActive ? BG : mod.color,
+                      }}>
+                      {mod.letter}
+                    </div>
+                  ) : (
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                      style={{ background: groupActive ? mod.color : "rgba(255,255,255,0.06)" }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                        stroke={groupActive ? BG : mod.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                      </svg>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-bold leading-tight"
+                      style={{ color: groupActive ? mod.color : TEXT }}>
+                      {group.label}
+                    </div>
+                    {group.sub && (
+                      <div className="text-[9px] truncate leading-tight mt-0.5"
+                        style={{ color: groupActive ? mod.color : MUTED, opacity: 0.8 }}>
+                        {group.sub}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Items ── */}
+              <div className="px-2 space-y-0.5">
                 {group.items.map((item: any, idx: number) => {
-                  // ── Sub-section divider label ──────────────────
-                  if (item._divider) {
+                  if (item._div) {
                     return (
-                      <div
-                        key={`divider-${idx}`}
-                        className="flex items-center gap-2 px-2 pt-2 pb-1"
-                      >
-                        <span
-                          className="text-[9.5px] font-bold tracking-widest uppercase truncate"
-                          style={{ color: group.accentColor, opacity: 0.7 }}
-                        >
-                          {item.label}
+                      <div key={`d-${idx}`} className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
+                        <span className="text-[9px] font-semibold tracking-wider uppercase whitespace-nowrap"
+                          style={{ color: mod.color, opacity: 0.6 }}>
+                          {item._div}
                         </span>
-                        <span
-                          className="flex-1 h-px"
-                          style={{ background: group.accentColor, opacity: 0.15 }}
-                        />
+                        <span className="flex-1 h-px" style={{ background: mod.color, opacity: 0.12 }} />
                       </div>
                     )
                   }
 
-                  // ── Regular nav link ───────────────────────────
-                  const isActive =
-                    pathname === item.href ||
+                  const isActive = pathname === item.href ||
                     (item.href !== "/" && pathname.startsWith(item.href))
 
                   return (
-                    <Link
-                      key={item.title}
-                      href={item.href}
-                      className="relative flex items-center gap-2 rounded-md px-2 py-[6px] text-[12.5px] font-medium transition-all duration-150"
+                    <Link key={item.title} href={item.href}
+                      className="relative flex items-center gap-2 rounded-md px-2.5 py-[5px] text-[12px] font-medium transition-all duration-100"
                       style={{
-                        background: isActive ? group.accentBg : "transparent",
-                        color: isActive ? group.accentColor : C.muted,
+                        background: isActive ? mod.bg : "transparent",
+                        color: isActive ? mod.color : MUTED,
                       }}
                       onMouseEnter={e => {
                         if (!isActive) {
                           (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"
-                          ;(e.currentTarget as HTMLElement).style.color = C.text
+                          ;(e.currentTarget as HTMLElement).style.color = TEXT
                         }
                       }}
                       onMouseLeave={e => {
                         if (!isActive) {
                           (e.currentTarget as HTMLElement).style.background = "transparent"
-                          ;(e.currentTarget as HTMLElement).style.color = C.muted
+                          ;(e.currentTarget as HTMLElement).style.color = MUTED
                         }
-                      }}
-                    >
-                      {/* Active left bar */}
+                      }}>
+                      {/* Active bar */}
                       {isActive && (
-                        <span
-                          className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full"
-                          style={{ background: group.accentColor }}
-                        />
+                        <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full"
+                          style={{ background: mod.color }} />
                       )}
-
                       {/* Dot */}
-                      <span
-                        className="h-[6px] w-[6px] rounded-full shrink-0 ml-1"
-                        style={{ background: group.accentColor, opacity: isActive ? 1 : 0.4 }}
-                      />
-
+                      <span className="h-1.5 w-1.5 rounded-full shrink-0 ml-0.5"
+                        style={{ background: mod.color, opacity: isActive ? 1 : 0.35 }} />
                       <span className="flex-1 truncate">{item.title}</span>
-
-                      {/* Badge */}
                       {item.badge && (
-                        <span
-                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none shrink-0"
-                          style={{ background: item.badge.bg, color: item.badge.color }}
-                        >
+                        <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full leading-none shrink-0"
+                          style={{ background: item.badge.bg, color: item.badge.color }}>
                           {item.badge.label}
                         </span>
                       )}
@@ -315,59 +238,41 @@ export function SidebarNav() {
                   )
                 })}
               </div>
+
             </div>
           )
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-3 space-y-1.5 shrink-0" style={{ borderTop: `1px solid ${C.border}` }}>
-        <Link
-          href="/settings"
-          className="flex items-center gap-2 rounded-md px-2.5 py-[7px] text-[12.5px] font-medium transition-all"
-          style={{ color: C.muted }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"
-            ;(e.currentTarget as HTMLElement).style.color = C.text
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = "transparent"
-            ;(e.currentTarget as HTMLElement).style.color = C.muted
-          }}
-        >
-          <Settings className="h-3.5 w-3.5 shrink-0" />
-          Settings
+      {/* ── Footer ── */}
+      <div className="px-3 py-3 space-y-1.5 shrink-0" style={{ borderTop: `1px solid ${BORDER}` }}>
+        <Link href="/settings"
+          className="flex items-center gap-2 rounded-md px-2.5 py-[7px] text-[12px] font-medium transition-all"
+          style={{ color: MUTED }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLElement).style.color = TEXT }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = MUTED }}>
+          <Settings className="h-3.5 w-3.5 shrink-0" />Settings
         </Link>
 
-        {/* AI status */}
         <div className="flex items-center gap-2 px-2.5 py-0.5">
-          <div className="h-1.5 w-1.5 rounded-full animate-pulse shrink-0" style={{ background: C.teal }} />
-          <span className="text-[10.5px]" style={{ color: C.muted }}>AI Engine Active</span>
+          <div className="h-1.5 w-1.5 rounded-full animate-pulse shrink-0" style={{ background: TEAL }} />
+          <span className="text-[10px]" style={{ color: MUTED }}>AI Engine Active</span>
         </div>
 
-        {/* User row */}
-        {userEmail && (
-          <div
-            className="flex items-center gap-2 rounded-lg px-2.5 py-2"
-            style={{ border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.03)" }}
-          >
-            <div
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-              style={{ background: C.tealBg }}
-            >
-              <User className="h-3.5 w-3.5" style={{ color: C.teal }} />
+        {email && (
+          <div className="flex items-center gap-2 rounded-lg px-2.5 py-2"
+            style={{ border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.03)" }}>
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              style={{ background: "rgba(0,212,160,0.12)" }}>
+              <User className="h-3.5 w-3.5" style={{ color: TEAL }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium truncate" style={{ color: C.text }}>{userEmail}</p>
-              <p className="text-[10px]" style={{ color: C.muted }}>ผู้ใช้งาน</p>
+              <p className="text-[11px] font-medium truncate" style={{ color: TEXT }}>{email}</p>
+              <p className="text-[10px]" style={{ color: MUTED }}>ผู้ใช้งาน</p>
             </div>
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              title="ออกจากระบบ"
+            <button onClick={signOut} disabled={signingOut} title="ออกจากระบบ"
               className="shrink-0 rounded-md p-1 transition-colors hover:bg-red-900/20"
-              style={{ color: C.muted }}
-            >
+              style={{ color: MUTED }}>
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>

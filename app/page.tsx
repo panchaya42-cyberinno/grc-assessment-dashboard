@@ -135,7 +135,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50/50">
       <SidebarNav />
-      <div className="ml-56">
+      <div className="ml-60">
 
         {/* ── Top Bar ── */}
         <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-card/80 backdrop-blur px-6 gap-4">

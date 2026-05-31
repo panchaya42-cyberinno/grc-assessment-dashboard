@@ -152,7 +152,7 @@ export default function LegalRegisterPage() {
   return (
     <div className="flex min-h-screen" style={{ background: "#0a1628", color: "#E8EDF4" }}>
       <SidebarNav />
-      <main className="flex-1 ml-56 p-6 lg:p-8 overflow-auto">
+      <main className="flex-1 ml-60 p-6 lg:p-8 overflow-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>

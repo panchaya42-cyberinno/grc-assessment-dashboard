@@ -681,7 +681,7 @@ export default function PDPAGovernancePage() {
     <div className="min-h-screen bg-background">
       <SidebarNav />
 
-      <div className="ml-56">
+      <div className="ml-60">
         {/* Header */}
         <div className="border-b border-border bg-gradient-to-r from-white via-emerald-50/20 to-white px-6 py-4">
           <div className="flex items-center justify-between gap-3">

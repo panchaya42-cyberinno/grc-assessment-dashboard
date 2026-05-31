@@ -219,7 +219,7 @@ export default function AssessmentPage() {
   return (
     <div className="flex min-h-screen" style={{ background: "#0a1628", color: "#E8EDF4" }}>
       <SidebarNav />
-      <main className="flex-1 ml-56 p-6 lg:p-8 overflow-auto">
+      <main className="flex-1 ml-60 p-6 lg:p-8 overflow-auto">
         {/* Back + year selector */}
         <div className="flex items-center justify-between mb-4">
           <Link href="/compliance/legal-register"

@@ -648,7 +648,7 @@ export default function CIIAuditPage() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-56">
+      <div className="ml-60">
       <div className="px-6 py-6 max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
@@ -903,7 +903,7 @@ export default function CIIAuditPage() {
         )}
 
       </div>
-      </div>{/* ml-56 */}
+      </div>{/* ml-60 */}
     </div>
   )
 }

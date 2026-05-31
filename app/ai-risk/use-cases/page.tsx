@@ -256,7 +256,7 @@ export default function AIUseCaseApprovalPage() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <main className="ml-56 p-6">
+      <main className="ml-60 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

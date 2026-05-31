@@ -110,7 +110,7 @@ export default function EditPolicyPage({ params }: { params: Promise<{ id: strin
   if (!policy) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <SidebarNav />
-      <p className="ml-56 text-sm text-muted-foreground">กำลังโหลด...</p>
+      <p className="ml-60 text-sm text-muted-foreground">กำลังโหลด...</p>
     </div>
   )
 
@@ -119,7 +119,7 @@ export default function EditPolicyPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className={cn("ml-56 transition-all duration-300", aiOpen ? "mr-[420px]" : "")}>
+      <div className={cn("ml-60 transition-all duration-300", aiOpen ? "mr-[420px]" : "")}>
 
         {/* Header */}
         <div className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur px-6 py-3">

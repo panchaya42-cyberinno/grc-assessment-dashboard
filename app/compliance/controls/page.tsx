@@ -514,7 +514,7 @@ function ControlsInner() {
   return (
     <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
       <SidebarNav />
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-60 p-8">
         {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
         {modal.open && (
           <ControlModal
@@ -742,7 +742,7 @@ export default function ControlsPage() {
     <Suspense fallback={
       <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
         <SidebarNav />
-        <main className="flex-1 ml-56 p-8">
+        <main className="flex-1 ml-60 p-8">
           <div className="space-y-3">
             {[1,2,3].map(i => <div key={i} className="animate-pulse rounded-xl h-16 bg-white/5" />)}
           </div>

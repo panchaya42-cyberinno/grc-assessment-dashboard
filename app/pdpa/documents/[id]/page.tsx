@@ -69,7 +69,7 @@ export default function PDPADocumentPage({ params }: { params: Promise<{ id: str
   if (!tpl) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <SidebarNav />
-      <p className="ml-56 text-sm text-muted-foreground">ไม่พบเอกสาร</p>
+      <p className="ml-60 text-sm text-muted-foreground">ไม่พบเอกสาร</p>
     </div>
   )
 
@@ -121,7 +121,7 @@ export default function PDPADocumentPage({ params }: { params: Promise<{ id: str
       <SidebarNav />
 
       {/* Main area shifts when AI panel is open */}
-      <div className={cn("ml-56 transition-all duration-300", aiOpen ? "mr-[420px]" : "mr-0")}>
+      <div className={cn("ml-60 transition-all duration-300", aiOpen ? "mr-[420px]" : "mr-0")}>
 
         {/* ─── Header ──────────────────────────────────────────────────────────── */}
         <div className="border-b border-border bg-card px-6 py-4 sticky top-0 z-30">

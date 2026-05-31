@@ -339,7 +339,7 @@ export default function RegulatorsPage() {
   return (
     <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
       <SidebarNav />
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-60 p-8">
         {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
         {modal.open && (
           <RegulatorModal

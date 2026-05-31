@@ -330,7 +330,7 @@ NC: ${ncItems.map(i => `[${i.clause}] ${results[i.id]?.finding || i.control}`).j
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-56">
+      <div className="ml-60">
 
         {/* ── Header ── */}
         <div className="border-b border-border bg-card px-6 py-4">

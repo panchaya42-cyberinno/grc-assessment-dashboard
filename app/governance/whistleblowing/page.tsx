@@ -334,7 +334,7 @@ export default function WhistleblowingPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-60 p-8">
         {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
         {createModal && <CreateModal existingCount={items.length} onClose={() => setCreateModal(false)} onSave={createItem} />}
         {editModal && <EditModal initial={editModal} onClose={() => setEditModal(null)} onSave={data => updateItem(editModal.id, data)} />}

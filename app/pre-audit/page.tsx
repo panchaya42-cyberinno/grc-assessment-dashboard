@@ -313,7 +313,7 @@ NC: ${ncItems.map(i=>`[${i.clause}] ${i.finding||i.question.slice(0,60)}`).join(
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-56">
+      <div className="ml-60">
       {/* Header */}
       <div className="border-b border-border bg-card px-6 py-4">
         <div className="flex items-start justify-between gap-4">
@@ -585,7 +585,7 @@ NC: ${ncItems.map(i=>`[${i.clause}] ${i.finding||i.question.slice(0,60)}`).join(
           </div>
         )}
       </div>
-      </div>{/* ml-56 */}
+      </div>{/* ml-60 */}
     </div>
   )
 }

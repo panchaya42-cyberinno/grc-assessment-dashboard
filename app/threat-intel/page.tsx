@@ -364,7 +364,7 @@ export default function ThreatIntelPage() {
     <div className="flex min-h-screen bg-background">
       <SidebarNav />
       
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-60 p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>

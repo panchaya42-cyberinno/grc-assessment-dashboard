@@ -227,7 +227,7 @@ export default function NewPolicyPage() {
     return (
       <div className="min-h-screen bg-background">
         <SidebarNav />
-        <div className="ml-56">
+        <div className="ml-60">
           <div className="border-b border-border bg-card px-6 py-4">
             <div className="flex items-center gap-3">
               <Link href="/policies" className="flex items-center justify-center h-8 w-8 rounded-lg border border-border bg-background hover:bg-muted transition-colors">
@@ -254,7 +254,7 @@ export default function NewPolicyPage() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-56">
+      <div className="ml-60">
         <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">

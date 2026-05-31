@@ -176,7 +176,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   if (!policy) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <SidebarNav />
-      <p className="ml-56 text-sm text-muted-foreground">ไม่พบนโยบาย</p>
+      <p className="ml-60 text-sm text-muted-foreground">ไม่พบนโยบาย</p>
     </div>
   )
 
@@ -203,7 +203,7 @@ export default function PolicyDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className={cn("ml-56 transition-all duration-300", aiOpen ? "mr-[420px]" : "mr-0")}>
+      <div className={cn("ml-60 transition-all duration-300", aiOpen ? "mr-[420px]" : "mr-0")}>
         {/* Header */}
         <div className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center gap-3 mb-4">

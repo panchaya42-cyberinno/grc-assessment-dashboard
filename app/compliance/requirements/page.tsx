@@ -407,7 +407,7 @@ function RequirementsInner() {
     return (
       <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
         <SidebarNav />
-        <main className="flex-1 ml-56 p-8">
+        <main className="flex-1 ml-60 p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white">ข้อกำหนดและมาตรา</h1>
             <p className="text-sm text-slate-400 mt-1">เลือกกฎหมาย/มาตรฐานเพื่อดูรายการมาตรา</p>
@@ -464,7 +464,7 @@ function RequirementsInner() {
   return (
     <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
       <SidebarNav />
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 ml-60 p-8">
         {toast && <Toast msg={toast} onHide={() => setToast(null)} />}
         {modal.open && (
           <ClauseModal
@@ -576,7 +576,7 @@ export default function RequirementsPage() {
     <Suspense fallback={
       <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
         <SidebarNav />
-        <main className="flex-1 ml-56 p-8">
+        <main className="flex-1 ml-60 p-8">
           <div className="space-y-3">
             {[1, 2, 3].map(i => <div key={i} className="animate-pulse rounded-xl h-16 bg-white/5" />)}
           </div>

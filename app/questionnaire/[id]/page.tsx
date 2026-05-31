@@ -360,7 +360,7 @@ export default function QuestionnairePage() {
     return (
       <div className="min-h-screen bg-background">
         <SidebarNav />
-        <div className="ml-56 flex items-center justify-center min-h-screen">
+        <div className="ml-60 flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function QuestionnairePage() {
   return (
     <div className="min-h-screen bg-background">
       <SidebarNav />
-      <div className="ml-56">
+      <div className="ml-60">
         <header className="border-b border-border bg-card px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
