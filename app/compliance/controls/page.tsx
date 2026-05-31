@@ -349,7 +349,7 @@ function ControlsInner() {
     const [ctrlRes, clauseRes, regRes] = await Promise.all([
       supabase
         .from("comp_controls")
-        .select("*, clause:comp_clauses(clause_number, title)")
+        .select("*, clause:comp_clauses(clause_number, title, regulation_id)")
         .order("due_date", { ascending: true, nullsFirst: false }),
       supabase
         .from("comp_clauses")
@@ -581,8 +581,8 @@ function ControlsInner() {
                         {/* Clause */}
                         <td className="px-4 py-3">
                           {ctrl.clause ? (() => {
-                            const clauseInfo = clauses.find(c => c.id === ctrl.clause_id)
-                            const regName = clauseInfo?.regulation_id ? regMap[clauseInfo.regulation_id] : null
+                            const regId = (ctrl.clause as any).regulation_id
+                            const regName = regId ? regMap[regId] : null
                             return (
                               <div className="min-w-[140px]">
                                 {regName && (
