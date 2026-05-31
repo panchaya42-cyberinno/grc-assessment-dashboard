@@ -313,9 +313,20 @@ function RequirementsInner() {
   const [error, setError]             = useState<string | null>(null)
   const [modal, setModal]             = useState<{ open: boolean; initial?: Clause | null }>({ open: false })
   const [toast, setToast]             = useState<string | null>(null)
+  const [allRegs, setAllRegs]         = useState<Regulation[]>([])
 
   const loadData = useCallback(async () => {
-    if (!regulationId) { setLoading(false); return }
+    if (!regulationId) {
+      // Load regulation list for the picker
+      const { data } = await supabase
+        .from("comp_regulations")
+        .select("id, name, name_en, regulator_id")
+        .eq("status", "active")
+        .order("name")
+      setAllRegs((data ?? []) as Regulation[])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -396,15 +407,48 @@ function RequirementsInner() {
     return (
       <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
         <SidebarNav />
-        <main className="flex-1 ml-56 p-8 flex items-center justify-center">
-          <div className="text-center text-slate-400">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p className="text-lg font-medium">กรุณาเลือกกฎหมาย/ข้อกำหนด</p>
-            <Link href="/compliance/regulations" className="text-sm mt-2 inline-block"
-              style={{ color: GREEN }}>
-              ← กลับไปเลือก
-            </Link>
+        <main className="flex-1 ml-56 p-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-white">ข้อกำหนดและมาตรา</h1>
+            <p className="text-sm text-slate-400 mt-1">เลือกกฎหมาย/มาตรฐานเพื่อดูรายการมาตรา</p>
           </div>
+          {loading ? (
+            <div className="space-y-2">
+              {[1,2,3,4,5].map(i => <div key={i} className="animate-pulse h-14 rounded-xl bg-white/5" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 max-w-2xl">
+              {allRegs.map(reg => (
+                <button
+                  key={reg.id}
+                  onClick={() => router.push(`/compliance/requirements?regulation=${reg.id}`)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all hover:opacity-90"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(34,197,94,0.08)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                >
+                  <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: GREEN_BG, border: `1px solid ${GREEN_BORDER}` }}>
+                    <Shield className="h-4 w-4" style={{ color: GREEN }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{reg.name}</p>
+                    {reg.name_en && <p className="text-xs text-slate-400 truncate">{reg.name_en}</p>}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-500 shrink-0" />
+                </button>
+              ))}
+              {allRegs.length === 0 && (
+                <div className="text-center py-12 text-slate-400">
+                  <FileText className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p>ยังไม่มีกฎหมาย/มาตรฐาน</p>
+                  <Link href="/compliance/regulations" className="text-sm mt-2 inline-block" style={{ color: GREEN }}>
+                    ไปเพิ่มกฎหมาย →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
     )
@@ -446,10 +490,19 @@ function RequirementsInner() {
               </p>
             )}
           </div>
-          <Button onClick={() => setModal({ open: true, initial: null })}
-            style={{ background: GREEN, color: "#fff" }} className="hover:opacity-90">
-            <Plus className="h-4 w-4 mr-1.5" />เพิ่มมาตรา
-          </Button>
+          <div className="flex items-center gap-2">
+            {regulationId && (
+              <Link href={`/compliance/import?regulation=${regulationId}`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border"
+                style={{ color: "#8B5CF6", borderColor: "rgba(139,92,246,0.35)", background: "rgba(139,92,246,0.12)" }}>
+                <FileText className="h-4 w-4" />AI Import
+              </Link>
+            )}
+            <Button onClick={() => setModal({ open: true, initial: null })}
+              style={{ background: GREEN, color: "#fff" }} className="hover:opacity-90">
+              <Plus className="h-4 w-4 mr-1.5" />เพิ่มมาตรา
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
