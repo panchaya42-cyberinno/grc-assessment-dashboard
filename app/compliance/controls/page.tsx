@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { SidebarNav } from "@/components/grc/sidebar-nav"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import {
   ArrowLeft, Plus, Pencil, Trash2, Shield, CheckCircle2,
-  Clock, AlertCircle, MinusCircle, Search,
+  Clock, AlertCircle, MinusCircle, Search, X,
 } from "lucide-react"
 
 // ─── Color tokens ─────────────────────────────────────────────────────────────
@@ -22,9 +22,11 @@ const INP_BG       = "#152234"
 const INP_BORDER   = "rgba(255,255,255,0.20)"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface Regulation { id: string; name: string; name_en: string | null }
+
 interface Control {
   id: string
-  clause_id: string
+  clause_id: string | null
   title: string
   description: string | null
   control_type: "policy" | "procedure" | "technical" | "physical" | "administrative"
@@ -35,14 +37,11 @@ interface Control {
   evidence_req: string | null
   due_date: string | null
   notes: string | null
-  clause?: { clause_number: string; title: string; regulation?: { name: string } | null } | null
+  clause?: { clause_number: string; title: string; regulation_id: string | null } | null
 }
 
 interface Clause {
-  id: string
-  clause_number: string
-  title: string
-  regulation_id: string
+  id: string; clause_number: string; title: string; regulation_id: string
   regulation?: { name: string } | null
 }
 
@@ -62,13 +61,21 @@ const TYPE_CFG: Record<string, { label: string; color: string; bg: string; borde
   administrative: { label: "Administrative",color: "#94A3B8", bg: "rgba(148,163,184,0.10)",  border: "rgba(148,163,184,0.30)" },
 }
 
+// Rotate through these colors for regulation badges
+const REG_COLORS = [
+  { color: "#4B9FFF", bg: "rgba(75,159,255,0.12)",  border: "rgba(75,159,255,0.30)" },
+  { color: "#9B7FFF", bg: "rgba(155,127,255,0.12)", border: "rgba(155,127,255,0.30)" },
+  { color: "#F59E0B", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.30)" },
+  { color: GREEN,     bg: GREEN_BG,                  border: GREEN_BORDER },
+  { color: "#EF4444", bg: "rgba(239,68,68,0.10)",   border: "rgba(239,68,68,0.30)" },
+]
+
 function StatusBadge({ status }: { status: string }) {
   const c = STATUS_CFG[status] ?? STATUS_CFG.not_started
   return (
     <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
       style={{ color: c.color, background: c.bg, border: `1px solid ${c.border}` }}>
-      {c.icon}
-      {c.label}
+      {c.icon}{c.label}
     </span>
   )
 }
@@ -94,28 +101,25 @@ const inpStyle = { background: INP_BG, border: `1px solid ${INP_BORDER}` } as Re
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onHide, 3000)
-    return () => clearTimeout(t)
-  }, [onHide])
+  useEffect(() => { const t = setTimeout(onHide, 3000); return () => clearTimeout(t) }, [onHide])
   return (
     <div className="fixed bottom-6 right-6 z-[999] rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-xl"
-      style={{ background: GREEN }}>
-      {msg}
-    </div>
+      style={{ background: GREEN }}>{msg}</div>
   )
 }
 
 // ─── Control Modal ────────────────────────────────────────────────────────────
-function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
+function ControlModal({ initial, clauses, allRegs, initialRegIds, defaultClauseId, onClose, onSave }: {
   initial?: Control | null
   clauses: Clause[]
+  allRegs: Regulation[]
+  initialRegIds: string[]
   defaultClauseId?: string
   onClose: () => void
-  onSave: (data: Omit<Control, "id" | "clause">) => Promise<void>
+  onSave: (data: Omit<Control, "id" | "clause">, regulationIds: string[]) => Promise<void>
 }) {
   const [form, setForm] = useState({
-    clause_id:    initial?.clause_id    ?? defaultClauseId ?? (clauses[0]?.id ?? ""),
+    clause_id:    initial?.clause_id    ?? defaultClauseId ?? "",
     title:        initial?.title        ?? "",
     description:  initial?.description  ?? "",
     control_type: (initial?.control_type ?? "policy") as Control["control_type"],
@@ -127,23 +131,32 @@ function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
     due_date:     initial?.due_date?.slice(0, 10) ?? "",
     notes:        initial?.notes        ?? "",
   })
-  const [search, setSearch]           = useState("")
-  const [saving, setSaving]           = useState(false)
+  const [selectedRegIds, setSelectedRegIds] = useState<string[]>(initialRegIds)
+  const [clauseSearch, setClauseSearch]     = useState("")
+  const [regSearch, setRegSearch]           = useState("")
   const [showClauseList, setShowClauseList] = useState(false)
+  const [saving, setSaving]                 = useState(false)
 
   const filteredClauses = clauses.filter(c =>
-    !search ||
-    c.clause_number.toLowerCase().includes(search.toLowerCase()) ||
-    c.title.toLowerCase().includes(search.toLowerCase())
+    !clauseSearch ||
+    c.clause_number.toLowerCase().includes(clauseSearch.toLowerCase()) ||
+    c.title.toLowerCase().includes(clauseSearch.toLowerCase())
   )
-
+  const filteredRegs = allRegs.filter(r =>
+    !regSearch || r.name.toLowerCase().includes(regSearch.toLowerCase())
+  )
   const selectedClause = clauses.find(c => c.id === form.clause_id)
 
+  function toggleReg(id: string) {
+    setSelectedRegIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
   async function handleSave() {
-    if (!form.title.trim() || !form.clause_id) return
+    if (!form.title.trim()) return
     setSaving(true)
     await onSave({
       ...form,
+      clause_id:    form.clause_id    || null,
       owner_dept:   form.owner_dept   || null,
       owner_name:   form.owner_name   || null,
       frequency:    form.frequency    || null,
@@ -151,7 +164,7 @@ function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
       due_date:     form.due_date     || null,
       description:  form.description  || null,
       notes:        form.notes        || null,
-    })
+    }, selectedRegIds)
     setSaving(false)
   }
 
@@ -161,19 +174,82 @@ function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
         <DialogHeader>
           <DialogTitle className="text-white">{initial ? "แก้ไข Control" : "เพิ่ม Internal Control"}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-          {/* Clause picker */}
+        <div className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
+
+          {/* ── Regulations multi-select ── */}
           <div>
-            <Label className="text-xs mb-1 block text-slate-300">มาตรา (Clause) *</Label>
+            <Label className="text-xs mb-2 block text-slate-300">
+              กฎหมาย / มาตรฐานที่เกี่ยวข้อง
+              <span className="ml-1 text-slate-500">(เลือกได้หลายข้อ)</span>
+            </Label>
+            {/* Selected chips */}
+            {selectedRegIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {selectedRegIds.map((rid, i) => {
+                  const reg = allRegs.find(r => r.id === rid)
+                  if (!reg) return null
+                  const c = REG_COLORS[i % REG_COLORS.length]
+                  return (
+                    <span key={rid} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
+                      style={{ background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>
+                      <span className="max-w-[160px] truncate">{reg.name}</span>
+                      <button onClick={() => toggleReg(rid)} className="hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+            {/* Search + list */}
+            <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${INP_BORDER}` }}>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  className="w-full pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+                  style={{ background: INP_BG }}
+                  placeholder="ค้นหากฎหมาย..."
+                  value={regSearch} onChange={e => setRegSearch(e.target.value)} />
+              </div>
+              <div className="max-h-36 overflow-y-auto" style={{ borderTop: `1px solid ${INP_BORDER}` }}>
+                {filteredRegs.map(r => (
+                  <button key={r.id} type="button"
+                    onClick={() => toggleReg(r.id)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-white/5"
+                    style={{ color: selectedRegIds.includes(r.id) ? GREEN : "#94A3B8" }}>
+                    <div className="h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0"
+                      style={{
+                        borderColor: selectedRegIds.includes(r.id) ? GREEN : "#475569",
+                        background: selectedRegIds.includes(r.id) ? GREEN : "transparent",
+                      }}>
+                      {selectedRegIds.includes(r.id) && <svg className="h-2.5 w-2.5 text-black" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>}
+                    </div>
+                    <span className="truncate">{r.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Clause picker (optional) ── */}
+          <div>
+            <Label className="text-xs mb-1 block text-slate-300">
+              มาตรา (Clause)
+              <span className="ml-1 text-slate-500">(ไม่บังคับ)</span>
+            </Label>
             <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowClauseList(v => !v)}
+              <button type="button" onClick={() => setShowClauseList(v => !v)}
                 className="w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-left"
                 style={{ background: INP_BG, border: `1px solid ${INP_BORDER}` }}>
                 {selectedClause
-                  ? <span className="text-white">{selectedClause.clause_number} — {selectedClause.title}</span>
-                  : <span className="text-slate-500">— เลือกมาตรา —</span>}
+                  ? <span className="text-white text-xs">{selectedClause.clause_number} — {selectedClause.title}</span>
+                  : <span className="text-slate-500 text-xs">— ไม่ระบุมาตรา —</span>}
+                {selectedClause && (
+                  <button type="button" onClick={e => { e.stopPropagation(); setForm(f => ({ ...f, clause_id: "" })) }}
+                    className="ml-auto text-slate-400 hover:text-white">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </button>
               {showClauseList && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl shadow-2xl overflow-hidden"
@@ -181,32 +257,22 @@ function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
                   <div className="p-2 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                      <input
-                        className="w-full rounded-lg border pl-8 pr-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                      <input className="w-full rounded-lg border pl-8 pr-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none"
                         style={{ background: INP_BG, border: `1px solid ${INP_BORDER}` }}
                         placeholder="ค้นหามาตรา..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        autoFocus
-                      />
+                        value={clauseSearch} onChange={e => setClauseSearch(e.target.value)} autoFocus />
                     </div>
                   </div>
-                  <div className="max-h-48 overflow-y-auto">
-                    {filteredClauses.length === 0 && (
-                      <p className="text-xs text-slate-400 text-center py-4">ไม่พบมาตรา</p>
-                    )}
+                  <div className="max-h-44 overflow-y-auto">
+                    {filteredClauses.length === 0 && <p className="text-xs text-slate-400 text-center py-4">ไม่พบมาตรา</p>}
                     {filteredClauses.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
+                      <button key={c.id} type="button"
                         className="w-full text-left px-3 py-2 text-sm hover:bg-white/10 transition-colors"
                         style={{ color: form.clause_id === c.id ? GREEN : "#e8edf4" }}
-                        onClick={() => { setForm(f => ({ ...f, clause_id: c.id })); setShowClauseList(false); setSearch("") }}>
+                        onClick={() => { setForm(f => ({ ...f, clause_id: c.id })); setShowClauseList(false); setClauseSearch("") }}>
                         <span className="font-mono font-semibold mr-2" style={{ color: GREEN }}>{c.clause_number}</span>
                         {c.title}
-                        {c.regulation && (
-                          <span className="ml-2 text-xs text-slate-500">({(c.regulation as any).name})</span>
-                        )}
+                        {c.regulation && <span className="ml-2 text-xs text-slate-500">({(c.regulation as any).name})</span>}
                       </button>
                     ))}
                   </div>
@@ -292,7 +358,7 @@ function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
               placeholder="รายละเอียดมาตรการควบคุม..." />
           </div>
           <div>
-            <Label className="text-xs mb-1 block text-slate-300">หลักฐานที่ต้องการ (Evidence Required)</Label>
+            <Label className="text-xs mb-1 block text-slate-300">หลักฐานที่ต้องการ</Label>
             <textarea className={inp} style={{ ...inpStyle, resize: "vertical" }} rows={2}
               value={form.evidence_req ?? ""}
               onChange={e => setForm(f => ({ ...f, evidence_req: e.target.value }))}
@@ -308,7 +374,7 @@ function ControlModal({ initial, clauses, defaultClauseId, onClose, onSave }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className="border-white/20 text-slate-300 hover:text-white">ยกเลิก</Button>
-          <Button disabled={saving || !form.title.trim() || !form.clause_id} onClick={handleSave}
+          <Button disabled={saving || !form.title.trim()} onClick={handleSave}
             style={{ background: GREEN, color: "#fff" }}>
             {saving ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
@@ -327,43 +393,55 @@ const STATUS_TABS = [
   { key: "not_applicable", label: "N/A" },
 ]
 
-// ─── Inner page (uses search params) ─────────────────────────────────────────
+// ─── Inner page ───────────────────────────────────────────────────────────────
 function ControlsInner() {
   const supabase     = createClient()
   const searchParams = useSearchParams()
   const clauseParam  = searchParams.get("clause")
 
-  const [controls, setControls] = useState<Control[]>([])
-  const [clauses, setClauses]   = useState<Clause[]>([])
-  const [regMap, setRegMap]     = useState<Record<string, string>>({})
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState<string | null>(null)
+  const [controls, setControls]         = useState<Control[]>([])
+  const [clauses, setClauses]           = useState<Clause[]>([])
+  const [allRegs, setAllRegs]           = useState<Regulation[]>([])
+  const [ctrlRegMap, setCtrlRegMap]     = useState<Record<string, string[]>>({})  // control_id → regulation_ids[]
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState("all")
   const [deptFilter, setDeptFilter]     = useState("")
-  const [modal, setModal]       = useState<{ open: boolean; initial?: Control | null }>({ open: false })
-  const [toast, setToast]       = useState<string | null>(null)
+  const [modal, setModal]               = useState<{ open: boolean; initial?: Control | null }>({ open: false })
+  const [toast, setToast]               = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const [ctrlRes, clauseRes, regRes] = await Promise.all([
+    const [ctrlRes, clauseRes, regRes, junctionRes] = await Promise.all([
       supabase
         .from("comp_controls")
         .select("*, clause:comp_clauses(clause_number, title, regulation_id)")
         .order("due_date", { ascending: true, nullsFirst: false }),
       supabase
         .from("comp_clauses")
-        .select("id, clause_number, title, regulation_id")
-        .order("clause_number", { ascending: true }),
+        .select("id, clause_number, title, regulation_id, regulation:comp_regulations(name)")
+        .order("clause_number"),
       supabase
         .from("comp_regulations")
-        .select("id, name"),
+        .select("id, name, name_en")
+        .eq("status", "active")
+        .order("name"),
+      supabase
+        .from("comp_control_regulations")
+        .select("control_id, regulation_id"),
     ])
     if (ctrlRes.error) { setError(ctrlRes.error.message); setLoading(false); return }
-    // Build regulation name map: regulation_id → name
-    const rm: Record<string, string> = {}
-    ;(regRes.data ?? []).forEach((r: any) => { if (r.id && r.name) rm[r.id] = r.name })
-    setRegMap(rm)
+
+    // Build control → [regulation_ids] map
+    const crm: Record<string, string[]> = {}
+    ;(junctionRes.data ?? []).forEach((r: any) => {
+      if (!crm[r.control_id]) crm[r.control_id] = []
+      crm[r.control_id].push(r.regulation_id)
+    })
+
+    setCtrlRegMap(crm)
+    setAllRegs((regRes.data ?? []) as Regulation[])
     setControls((ctrlRes.data ?? []) as Control[])
     setClauses((clauseRes.data ?? []) as unknown as Clause[])
     setLoading(false)
@@ -371,18 +449,27 @@ function ControlsInner() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // If arriving from requirements page with clause param, pre-open modal
   useEffect(() => {
-    if (clauseParam && !loading && clauses.length > 0) {
-      setModal({ open: true, initial: null })
-    }
+    if (clauseParam && !loading && clauses.length > 0) setModal({ open: true, initial: null })
   }, [clauseParam, loading, clauses.length])
 
-  async function saveControl(data: Omit<Control, "id" | "clause">) {
+  async function saveControl(data: Omit<Control, "id" | "clause">, regulationIds: string[]) {
+    let controlId: string
     if (modal.initial) {
       await supabase.from("comp_controls").update(data).eq("id", modal.initial.id)
+      controlId = modal.initial.id
     } else {
-      await supabase.from("comp_controls").insert(data)
+      const { data: inserted } = await supabase.from("comp_controls").insert(data).select("id").single()
+      controlId = inserted?.id
+    }
+    if (controlId) {
+      // Replace regulation links
+      await supabase.from("comp_control_regulations").delete().eq("control_id", controlId)
+      if (regulationIds.length > 0) {
+        await supabase.from("comp_control_regulations").insert(
+          regulationIds.map(rid => ({ control_id: controlId, regulation_id: rid }))
+        )
+      }
     }
     setModal({ open: false })
     setToast("บันทึกสำเร็จ")
@@ -396,17 +483,14 @@ function ControlsInner() {
     loadData()
   }
 
-  // Unique departments
   const departments = Array.from(new Set(controls.map(c => c.owner_dept).filter(Boolean))) as string[]
 
-  // Filtered
   const filtered = controls.filter(c => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false
     if (deptFilter && c.owner_dept !== deptFilter) return false
     return true
   })
 
-  // Stats
   const stats = {
     total:          controls.length,
     implemented:    controls.filter(c => c.status === "implemented").length,
@@ -415,16 +499,17 @@ function ControlsInner() {
     not_applicable: controls.filter(c => c.status === "not_applicable").length,
   }
 
-  // Due date color
   function dueDateColor(d: string | null): string {
     if (!d) return "#64748B"
-    const now = new Date()
-    const due = new Date(d)
-    const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    if (diffDays < 0)  return "#EF4444"
-    if (diffDays < 30) return "#F59E0B"
+    const diff = Math.ceil((new Date(d).getTime() - Date.now()) / 86400000)
+    if (diff < 0) return "#EF4444"
+    if (diff < 30) return "#F59E0B"
     return "#22C55E"
   }
+
+  // Build regulation name map for display
+  const regNameMap: Record<string, string> = {}
+  allRegs.forEach(r => { regNameMap[r.id] = r.name })
 
   return (
     <div className="flex min-h-screen" style={{ background: "#0C1A2E" }}>
@@ -435,6 +520,8 @@ function ControlsInner() {
           <ControlModal
             initial={modal.initial}
             clauses={clauses}
+            allRegs={allRegs}
+            initialRegIds={modal.initial ? (ctrlRegMap[modal.initial.id] ?? []) : []}
             defaultClauseId={clauseParam ?? undefined}
             onClose={() => setModal({ open: false })}
             onSave={saveControl}
@@ -449,7 +536,7 @@ function ControlsInner() {
               <ArrowLeft className="h-4 w-4" />กลับ Compliance Hub
             </Link>
             <h1 className="text-2xl font-bold text-white">Internal Controls</h1>
-            <p className="text-slate-400 text-sm mt-0.5">มาตรการควบคุมภายในทั้งหมด — ติดตามสถานะและผู้รับผิดชอบ</p>
+            <p className="text-slate-400 text-sm mt-0.5">มาตรการควบคุมภายในทั้งหมด — 1 control ครอบคลุมได้หลายกฎหมาย</p>
           </div>
           <Button onClick={() => setModal({ open: true, initial: null })}
             style={{ background: GREEN, color: "#fff" }} className="hover:opacity-90">
@@ -460,11 +547,11 @@ function ControlsInner() {
         {/* Stats */}
         <div className="grid grid-cols-5 gap-3 mb-6">
           {[
-            { label: "ทั้งหมด",       value: stats.total,          color: GREEN,     icon: <Shield className="h-4 w-4" /> },
-            { label: "Implemented",   value: stats.implemented,    color: GREEN,     icon: <CheckCircle2 className="h-4 w-4" /> },
-            { label: "Partial",       value: stats.partial,        color: "#F59E0B", icon: <Clock className="h-4 w-4" /> },
-            { label: "Not Started",   value: stats.not_started,    color: "#EF4444", icon: <AlertCircle className="h-4 w-4" /> },
-            { label: "N/A",           value: stats.not_applicable, color: "#94A3B8", icon: <MinusCircle className="h-4 w-4" /> },
+            { label: "ทั้งหมด",     value: stats.total,          color: GREEN,     icon: <Shield className="h-4 w-4" /> },
+            { label: "Implemented", value: stats.implemented,    color: GREEN,     icon: <CheckCircle2 className="h-4 w-4" /> },
+            { label: "Partial",     value: stats.partial,        color: "#F59E0B", icon: <Clock className="h-4 w-4" /> },
+            { label: "Not Started", value: stats.not_started,    color: "#EF4444", icon: <AlertCircle className="h-4 w-4" /> },
+            { label: "N/A",         value: stats.not_applicable, color: "#94A3B8", icon: <MinusCircle className="h-4 w-4" /> },
           ].map((s, i) => (
             <div key={i} className="rounded-xl p-4 flex items-center gap-3"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -472,10 +559,8 @@ function ControlsInner() {
                 <span style={{ color: s.color }}>{s.icon}</span>
               </div>
               <div>
-                {loading
-                  ? <div className="animate-pulse h-6 w-6 bg-white/10 rounded mb-0.5" />
-                  : <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-                }
+                {loading ? <div className="animate-pulse h-6 w-6 bg-white/10 rounded mb-0.5" />
+                  : <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>}
                 <p className="text-xs text-slate-400">{s.label}</p>
               </div>
             </div>
@@ -484,7 +569,6 @@ function ControlsInner() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 mb-5 flex-wrap">
-          {/* Status tabs */}
           <div className="flex gap-1.5">
             {STATUS_TABS.map(t => (
               <button key={t.key} onClick={() => setStatusFilter(t.key)}
@@ -495,40 +579,24 @@ function ControlsInner() {
                   border:     statusFilter === t.key ? `1px solid ${GREEN_BORDER}` : "1px solid rgba(255,255,255,0.08)",
                 }}>
                 {t.label}
-                {t.key !== "all" && (
-                  <span className="ml-1.5 opacity-70">
-                    ({controls.filter(c => c.status === t.key).length})
-                  </span>
-                )}
+                {t.key !== "all" && <span className="ml-1.5 opacity-70">({controls.filter(c => c.status === t.key).length})</span>}
               </button>
             ))}
           </div>
-
-          {/* Dept filter */}
-          <select
-            className="rounded-lg border px-3 py-1.5 text-xs text-white focus:outline-none"
+          <select className="rounded-lg border px-3 py-1.5 text-xs text-white focus:outline-none"
             style={{ background: INP_BG, border: `1px solid ${INP_BORDER}` }}
-            value={deptFilter}
-            onChange={e => setDeptFilter(e.target.value)}>
+            value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
             <option value="">ทุกแผนก</option>
-            {departments.map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+            {departments.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-
           {deptFilter && (
-            <button onClick={() => setDeptFilter("")}
-              className="text-xs text-slate-400 hover:text-white transition-colors underline">
+            <button onClick={() => setDeptFilter("")} className="text-xs text-slate-400 hover:text-white transition-colors underline">
               ล้างตัวกรอง
             </button>
           )}
-
-          <span className="ml-auto text-xs text-slate-500">
-            แสดง {filtered.length} จาก {controls.length} รายการ
-          </span>
+          <span className="ml-auto text-xs text-slate-500">แสดง {filtered.length} จาก {controls.length} รายการ</span>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 rounded-lg p-4 text-sm font-medium"
             style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
@@ -536,16 +604,12 @@ function ControlsInner() {
           </div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="animate-pulse rounded-xl h-16 bg-white/5" />
-            ))}
+            {[1,2,3,4,5].map(i => <div key={i} className="animate-pulse rounded-xl h-16 bg-white/5" />)}
           </div>
         )}
 
-        {/* Empty */}
         {!loading && !error && filtered.length === 0 && (
           <div className="text-center py-16 text-slate-400">
             <Shield className="h-12 w-12 mx-auto mb-4 opacity-20" />
@@ -554,15 +618,13 @@ function ControlsInner() {
           </div>
         )}
 
-        {/* Table */}
         {!loading && !error && filtered.length > 0 && (
-          <div className="rounded-xl overflow-hidden"
-            style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                    {["มาตรา", "Control", "ประเภท", "แผนก/ฝ่าย", "ความถี่", "สถานะ", "วันครบกำหนด", ""].map(h => (
+                    {["กฎหมายที่เกี่ยวข้อง", "Control", "ประเภท", "แผนก/ฝ่าย", "ความถี่", "สถานะ", "วันครบกำหนด", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
@@ -571,72 +633,83 @@ function ControlsInner() {
                 </thead>
                 <tbody>
                   {filtered.map((ctrl, idx) => {
-                    const dColor = dueDateColor(ctrl.due_date)
+                    const dColor    = dueDateColor(ctrl.due_date)
+                    // Get regulation IDs: from junction table + clause's regulation
+                    const juncIds   = ctrlRegMap[ctrl.id] ?? []
+                    const clauseRegId = (ctrl.clause as any)?.regulation_id
+                    const allRegIds = clauseRegId && !juncIds.includes(clauseRegId)
+                      ? [...juncIds, clauseRegId]
+                      : juncIds
+
                     return (
                       <tr key={ctrl.id}
                         className="transition-colors"
                         style={{ borderBottom: idx < filtered.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                        {/* Clause */}
-                        <td className="px-4 py-3">
-                          {ctrl.clause ? (() => {
-                            const regId = (ctrl.clause as any).regulation_id
-                            const regName = regId ? regMap[regId] : null
-                            return (
-                              <div className="min-w-[140px]">
-                                {regName && (
-                                  <p className="text-xs mb-0.5 max-w-[200px] truncate font-medium" style={{ color: "#4B9FFF" }}>
-                                    {regName}
-                                  </p>
-                                )}
-                                <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
-                                  {(ctrl.clause as any).clause_number}
-                                </span>
-                                <p className="text-xs text-slate-400 mt-0.5 max-w-[200px] truncate">
-                                  {(ctrl.clause as any).title}
-                                </p>
-                              </div>
-                            )
-                          })() : (
-                            <span className="text-slate-500 text-xs">—</span>
+
+                        {/* Regulations column */}
+                        <td className="px-4 py-3 min-w-[180px] max-w-[220px]">
+                          {allRegIds.length > 0 ? (
+                            <div className="space-y-1">
+                              {allRegIds.map((rid, i) => {
+                                const name = regNameMap[rid]
+                                if (!name) return null
+                                const c = REG_COLORS[i % REG_COLORS.length]
+                                return (
+                                  <div key={rid} className="text-xs font-medium truncate" style={{ color: c.color }} title={name}>
+                                    {name}
+                                  </div>
+                                )
+                              })}
+                              {/* Clause if linked */}
+                              {ctrl.clause && (
+                                <div className="mt-1 pt-1" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                                  <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
+                                    {(ctrl.clause as any).clause_number}
+                                  </span>
+                                  <p className="text-xs text-slate-400 truncate">{(ctrl.clause as any).title}</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : ctrl.clause ? (
+                            <div>
+                              <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
+                                {(ctrl.clause as any).clause_number}
+                              </span>
+                              <p className="text-xs text-slate-400 truncate">{(ctrl.clause as any).title}</p>
+                            </div>
+                          ) : (
+                            <button onClick={() => setModal({ open: true, initial: ctrl })}
+                              className="text-xs text-slate-500 hover:text-blue-400 transition-colors underline">
+                              + ระบุกฎหมาย
+                            </button>
                           )}
                         </td>
+
                         {/* Control */}
                         <td className="px-4 py-3">
-                          <div>
-                            <p className="font-medium text-white">{ctrl.title}</p>
-                            {ctrl.description && (
-                              <p className="text-xs text-slate-400 mt-0.5 max-w-[220px] truncate">{ctrl.description}</p>
-                            )}
-                          </div>
+                          <p className="font-medium text-white">{ctrl.title}</p>
+                          {ctrl.description && (
+                            <p className="text-xs text-slate-400 mt-0.5 max-w-[220px] truncate">{ctrl.description}</p>
+                          )}
                         </td>
                         {/* Type */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <TypeBadge type={ctrl.control_type} />
-                        </td>
-                        {/* Owner dept */}
+                        <td className="px-4 py-3 whitespace-nowrap"><TypeBadge type={ctrl.control_type} /></td>
+                        {/* Owner */}
                         <td className="px-4 py-3">
-                          <div>
-                            <p className="text-white text-xs">{ctrl.owner_dept || "—"}</p>
-                            {ctrl.owner_name && (
-                              <p className="text-xs text-slate-400 mt-0.5">{ctrl.owner_name}</p>
-                            )}
-                          </div>
+                          <p className="text-white text-xs">{ctrl.owner_dept || "—"}</p>
+                          {ctrl.owner_name && <p className="text-xs text-slate-400 mt-0.5">{ctrl.owner_name}</p>}
                         </td>
                         {/* Frequency */}
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="text-xs text-slate-300">{ctrl.frequency || "—"}</span>
                         </td>
                         {/* Status */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusBadge status={ctrl.status} />
-                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={ctrl.status} /></td>
                         {/* Due date */}
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-xs font-medium" style={{ color: dColor }}>
-                            {fmt(ctrl.due_date)}
-                          </span>
+                          <span className="text-xs font-medium" style={{ color: dColor }}>{fmt(ctrl.due_date)}</span>
                         </td>
                         {/* Actions */}
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -664,7 +737,6 @@ function ControlsInner() {
   )
 }
 
-// ─── Page (wrapped in Suspense for useSearchParams) ───────────────────────────
 export default function ControlsPage() {
   return (
     <Suspense fallback={
@@ -672,7 +744,7 @@ export default function ControlsPage() {
         <SidebarNav />
         <main className="flex-1 ml-56 p-8">
           <div className="space-y-3">
-            {[1, 2, 3].map(i => <div key={i} className="animate-pulse rounded-xl h-16 bg-white/5" />)}
+            {[1,2,3].map(i => <div key={i} className="animate-pulse rounded-xl h-16 bg-white/5" />)}
           </div>
         </main>
       </div>
