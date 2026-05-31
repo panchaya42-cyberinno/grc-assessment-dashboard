@@ -572,21 +572,29 @@ function ControlsInner() {
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                         {/* Clause */}
                         <td className="px-4 py-3">
-                          {ctrl.clause ? (
-                            <div className="min-w-[140px]">
-                              {(ctrl.clause as any).regulation?.name && (
-                                <p className="text-xs mb-0.5 max-w-[160px] truncate" style={{ color: "#4B9FFF" }}>
-                                  {(ctrl.clause as any).regulation.name}
+                          {ctrl.clause ? (() => {
+                            const clauseInfo = clauses.find(c => c.id === ctrl.clause_id)
+                            const regName = clauseInfo?.regulation
+                              ? (Array.isArray(clauseInfo.regulation)
+                                  ? (clauseInfo.regulation as any)[0]?.name
+                                  : (clauseInfo.regulation as any).name)
+                              : null
+                            return (
+                              <div className="min-w-[140px]">
+                                {regName && (
+                                  <p className="text-xs mb-0.5 max-w-[180px] truncate font-medium" style={{ color: "#4B9FFF" }}>
+                                    {regName}
+                                  </p>
+                                )}
+                                <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
+                                  {(ctrl.clause as any).clause_number}
+                                </span>
+                                <p className="text-xs text-slate-400 mt-0.5 max-w-[180px] truncate">
+                                  {(ctrl.clause as any).title}
                                 </p>
-                              )}
-                              <span className="text-xs font-mono font-bold" style={{ color: GREEN }}>
-                                {(ctrl.clause as any).clause_number}
-                              </span>
-                              <p className="text-xs text-slate-400 mt-0.5 max-w-[160px] truncate">
-                                {(ctrl.clause as any).title}
-                              </p>
-                            </div>
-                          ) : (
+                              </div>
+                            )
+                          })() : (
                             <span className="text-slate-500 text-xs">—</span>
                           )}
                         </td>
