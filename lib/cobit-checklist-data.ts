@@ -771,7 +771,7 @@ export const COBIT_PRACTICES: CobitPractice[] = [
     domain: 'APO',
     process: 'APO14',
     processName: 'Managed Data',
-    name: 'Define and communicate the organization\\'s data management strategy and roles and responsibilities',
+    name: `Define and communicate the organization's data management strategy and roles and responsibilities`,
     level2: `กำหนดหน่วยงานที่ทำหน้าที่บริหารจัดการด้านข้อมูล (หน่วยงานบริหารจัดการข้อมูลโดยตรง) บทบาทและหน้าที่ความรับผิดชอบกำหนดบทบาทและหน้าที่ความรับผิดชอบของหน่วยงานภายในองค์กร หน่วยงานบริหารจัดการข้อมูลนั้น และโครงสร้างของการกำกับดูแลข้อมูลที่ดี`,
     level3: `กำหนดกลไกการกำกับดูแลข้อมูล ได้แก่ นโยบายการกำกับดูแลข้อมูล กลยุทธ์การบริหารจัดการข้อมูล วัตถุประสงค์ของการกำกับดูแลข้อมูล ขอบเขต และแผนการดำเนินงานต่างๆ (เพื่อดำเนินการให้เป็นไปตามนโยบายและกลยุทธ์ที่กำหนดไว้)กำหนดแผนการดำเนินงานเกี่ยวกับการบริหารจัดการข้อมูลสื่อสารแผนการดำเนินงานดังกล่าวไปยังผู้มีส่วนได้ส่วนเสียให้ได้รับทราบ`,
   },
