@@ -9,6 +9,40 @@ const DOMAIN_COLORS: Record<string, string> = {
   EDM: "#8B5CF6", APO: "#3B82F6", BAI: "#10B981", DSS: "#F59E0B", MEA: "#EF4444"
 }
 
+// Assessment criteria per level
+const LEVEL_CRITERIA = [
+  { label: "L0 — Incomplete", color: "#6B7280", evidence: "ไม่มีหลักฐานว่าองค์กรปฏิบัติกิจกรรมนี้เลย หรือปฏิบัติแต่ไม่บรรลุผล" },
+  { label: "L1 — Initial", color: "#EF4444", evidence: "มีหลักฐานว่าองค์กรรับรู้ถึงความจำเป็น และมีการปฏิบัติบ้าง แต่ยังไม่เป็นระบบ ไม่มีเอกสาร" },
+  { label: "L2 — Managed", color: "#F59E0B", evidence: "มีการวางแผน ติดตาม และปรับปรุง process อย่างสม่ำเสมอ มีเอกสาร policy/procedure มีผู้รับผิดชอบชัดเจน" },
+  { label: "L3 — Established", color: "#3B82F6", evidence: "มี standard process ใช้ทั่วทั้งองค์กร มีการ training ผู้ปฏิบัติ มี work product ที่กำหนดไว้ครบ ปฏิบัติสม่ำเสมอทุกหน่วยงาน" },
+  { label: "L4 — Predictable", color: "#8B5CF6", evidence: "วัดผล process เชิงปริมาณได้ มีการใช้ metrics/KPIs ควบคุม process performance สามารถคาดเดาผลลัพธ์ได้" },
+  { label: "L5 — Optimizing", color: "#10B981", evidence: "มีการปรับปรุง process อย่างต่อเนื่อง (continuous improvement) ใช้ข้อมูลเชิงปริมาณวิเคราะห์จุดอ่อนและนวัตกรรมใหม่" },
+]
+
+// Interview guide per domain
+const INTERVIEW_GUIDE: Record<string, { who: string[]; docs: string[] }> = {
+  EDM: {
+    who: ["CIO / CISO", "Board / Audit Committee", "IT Steering Committee"],
+    docs: ["IT Governance Charter", "Board minutes", "IT Strategy", "IT Policy"]
+  },
+  APO: {
+    who: ["IT Manager", "Process Owner", "Business Unit Head"],
+    docs: ["IT Plans", "Architecture documents", "Risk Register", "Budget reports"]
+  },
+  BAI: {
+    who: ["Project Manager", "Solution Architect", "Change Manager"],
+    docs: ["Project charters", "Change logs", "UAT records", "Deployment runbooks"]
+  },
+  DSS: {
+    who: ["IT Operations Manager", "Service Desk Lead", "Security Officer"],
+    docs: ["Incident reports", "SLA reports", "BCP/DR plans", "Monitoring dashboards"]
+  },
+  MEA: {
+    who: ["Internal Audit", "Compliance Officer", "Risk Manager"],
+    docs: ["Audit reports", "Compliance checklists", "KPI dashboards", "Control assessments"]
+  },
+}
+
 interface Score { current: number; target: number }
 type Scores = Record<string, Score>
 
@@ -19,6 +53,7 @@ function ScoreCell({ value, onChange, color }: { value: number; onChange: (v: nu
         <button
           key={v}
           onClick={() => onChange(v)}
+          title={LEVEL_LABELS[v]}
           className="w-7 h-7 rounded text-xs font-bold transition-all border"
           style={{
             background: v <= value ? color : "transparent",
@@ -43,12 +78,14 @@ function GapBadge({ gap }: { gap: number }) {
 export default function COBIT2019AssessmentPage() {
   const [scores, setScores] = useState<Scores>({})
   const [activeDomain, setActiveDomain] = useState<CobitDomain | "ALL">("ALL")
-  const [expandedProcess, setExpandedProcess] = useState<string | null>(null)
+  const [expandedProcesses, setExpandedProcesses] = useState<Set<string>>(new Set())
   const [orgName, setOrgName] = useState("")
   const [aiResult, setAiResult] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
   const [showOnlyGaps, setShowOnlyGaps] = useState(false)
   const [defaultTarget, setDefaultTarget] = useState(3)
+  const [showGuide, setShowGuide] = useState(false)
+  const [showActivityDesc, setShowActivityDesc] = useState(true)
 
   const getScore = (id: string): Score => scores[id] ?? { current: 0, target: defaultTarget }
 
@@ -67,6 +104,7 @@ export default function COBIT2019AssessmentPage() {
     })
   }
 
+  // Get all unique process keys in current filtered view
   const filtered = useMemo(() => {
     let list = COBIT_PRACTICES
     if (activeDomain !== "ALL") list = list.filter(p => p.domain === activeDomain)
@@ -77,7 +115,6 @@ export default function COBIT2019AssessmentPage() {
     return list
   }, [activeDomain, showOnlyGaps, scores, defaultTarget])
 
-  // Group by process
   const grouped = useMemo(() => {
     const map = new Map<string, typeof COBIT_PRACTICES>()
     for (const p of filtered) {
@@ -87,7 +124,19 @@ export default function COBIT2019AssessmentPage() {
     return map
   }, [filtered])
 
-  // Summary stats
+  const allProcessKeys = useMemo(() => Array.from(grouped.keys()), [grouped])
+
+  const expandAll = () => setExpandedProcesses(new Set(allProcessKeys))
+  const collapseAll = () => setExpandedProcesses(new Set())
+  const toggleProcess = (proc: string) => {
+    setExpandedProcesses(prev => {
+      const next = new Set(prev)
+      if (next.has(proc)) next.delete(proc)
+      else next.add(proc)
+      return next
+    })
+  }
+
   const stats = useMemo(() => {
     const all = COBIT_PRACTICES
     const total = all.length
@@ -132,6 +181,65 @@ export default function COBIT2019AssessmentPage() {
           </span>
         </div>
         <p className="text-sm opacity-60">ประเมินระดับความสามารถ (0–5) และวิเคราะห์ Gap สำหรับ 108 practices</p>
+      </div>
+
+      {/* Assessment Guide Panel */}
+      <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#3B82F640" }}>
+        <button
+          className="w-full flex items-center justify-between px-5 py-3 text-left"
+          style={{ background: "#3B82F608" }}
+          onClick={() => setShowGuide(!showGuide)}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📋</span>
+            <span className="font-semibold text-sm" style={{ color: "#3B82F6" }}>คู่มือการประเมิน — วิธี Interview & หลักฐานที่ต้องการ</span>
+          </div>
+          <span className="text-xs opacity-50">{showGuide ? "▲ ซ่อน" : "▼ แสดง"}</span>
+        </button>
+        {showGuide && (
+          <div className="p-5 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Scoring criteria */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">เกณฑ์การให้คะแนน (Capability Level)</h4>
+              <div className="space-y-2">
+                {LEVEL_CRITERIA.map((lc, i) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <span className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ background: lc.color }} />
+                    <div>
+                      <span className="text-xs font-bold" style={{ color: lc.color }}>{lc.label}</span>
+                      <p className="text-xs opacity-70 mt-0.5">{lc.evidence}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Interview guide by domain */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">ผู้ให้สัมภาษณ์ & เอกสารที่ขอ (ตาม Domain)</h4>
+              <div className="space-y-3">
+                {Object.entries(INTERVIEW_GUIDE).map(([domain, g]) => (
+                  <div key={domain} className="rounded-lg p-3" style={{ background: DOMAIN_COLORS[domain] + "10", borderLeft: `3px solid ${DOMAIN_COLORS[domain]}` }}>
+                    <span className="text-xs font-bold" style={{ color: DOMAIN_COLORS[domain] }}>{domain}</span>
+                    <div className="mt-1 text-xs opacity-70">
+                      <div><b>Interview:</b> {g.who.join(", ")}</div>
+                      <div><b>เอกสาร:</b> {g.docs.join(", ")}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* General method */}
+            <div className="md:col-span-2 rounded-lg p-4 text-xs" style={{ background: "#F59E0B11", borderLeft: "3px solid #F59E0B" }}>
+              <b className="text-amber-500">วิธีประเมิน (3 แนวทาง):</b>
+              <ol className="mt-2 space-y-1 opacity-80 list-decimal list-inside">
+                <li><b>Interview</b> — สัมภาษณ์ผู้รับผิดชอบ process: "มีการทำ X ไหม? ทำอย่างไร? ใครรับผิดชอบ? มีการติดตามอย่างไร?"</li>
+                <li><b>Document Review</b> — ขอดู policy, procedure, work product, log, รายงาน ที่เป็นหลักฐานว่า practice ถูกปฏิบัติ</li>
+                <li><b>Observation</b> — สังเกตการณ์จริง เช่น ดู change management process จริง หรือ incident response drill</li>
+              </ol>
+              <p className="mt-2 opacity-70">กิจกรรม <b>L2</b> และ <b>L3</b> ใต้แต่ละ practice คือ checklist ของสิ่งที่ต้องมีหลักฐาน — ใช้เป็น interview question template ได้เลย</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -182,7 +290,11 @@ export default function COBIT2019AssessmentPage() {
         </div>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input type="checkbox" checked={showOnlyGaps} onChange={e => setShowOnlyGaps(e.target.checked)} />
-          Show gaps only
+          Gaps only
+        </label>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={showActivityDesc} onChange={e => setShowActivityDesc(e.target.checked)} />
+          แสดงกิจกรรม L2/L3
         </label>
         <button
           onClick={runAI}
@@ -205,22 +317,38 @@ export default function COBIT2019AssessmentPage() {
         </div>
       )}
 
-      {/* Domain Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {domainList.map(d => (
+      {/* Domain Filter + Expand controls */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap flex-1">
+          {domainList.map(d => (
+            <button
+              key={d}
+              onClick={() => setActiveDomain(d)}
+              className="px-4 py-1.5 rounded-full text-sm font-semibold border transition-all"
+              style={{
+                background: activeDomain === d ? (d === "ALL" ? "#374151" : DOMAIN_COLORS[d]) : "transparent",
+                color: activeDomain === d ? "white" : (d === "ALL" ? undefined : DOMAIN_COLORS[d]),
+                borderColor: d === "ALL" ? "#374151" : DOMAIN_COLORS[d],
+              }}
+            >
+              {d} {d !== "ALL" && `(${COBIT_PRACTICES.filter(p => p.domain === d).length})`}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
           <button
-            key={d}
-            onClick={() => setActiveDomain(d)}
-            className="px-4 py-1.5 rounded-full text-sm font-semibold border transition-all"
-            style={{
-              background: activeDomain === d ? (d === "ALL" ? "#374151" : DOMAIN_COLORS[d]) : "transparent",
-              color: activeDomain === d ? "white" : (d === "ALL" ? undefined : DOMAIN_COLORS[d]),
-              borderColor: d === "ALL" ? "#374151" : DOMAIN_COLORS[d],
-            }}
+            onClick={expandAll}
+            className="px-3 py-1.5 rounded-lg text-xs border font-semibold opacity-70 hover:opacity-100 transition-opacity"
           >
-            {d} {d !== "ALL" && `(${COBIT_PRACTICES.filter(p => p.domain === d).length})`}
+            Expand All ▼
           </button>
-        ))}
+          <button
+            onClick={collapseAll}
+            className="px-3 py-1.5 rounded-lg text-xs border font-semibold opacity-70 hover:opacity-100 transition-opacity"
+          >
+            Collapse All ▲
+          </button>
+        </div>
       </div>
 
       {/* Checklist */}
@@ -231,14 +359,15 @@ export default function COBIT2019AssessmentPage() {
           const procAvg = procScores.reduce((s, x) => s + x.current, 0) / procScores.length
           const procGaps = procScores.filter(s => s.target > s.current).length
           const domain = practices[0].domain
-          const isOpen = expandedProcess === process
+          const isOpen = expandedProcesses.has(process)
+          const guide = INTERVIEW_GUIDE[domain]
 
           return (
             <div key={process} className="rounded-xl border overflow-hidden">
               {/* Process Header */}
               <button
                 className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/5 transition-colors"
-                onClick={() => setExpandedProcess(isOpen ? null : process)}
+                onClick={() => toggleProcess(process)}
               >
                 <span className="text-xs font-bold px-2 py-1 rounded" style={{ background: DOMAIN_COLORS[domain] + "22", color: DOMAIN_COLORS[domain] }}>
                   {process}
@@ -249,7 +378,6 @@ export default function COBIT2019AssessmentPage() {
                   {procGaps > 0 && <span className="text-orange-400">{procGaps} gaps</span>}
                   <span>{practices.length} practices</span>
                 </div>
-                {/* Mini score bar */}
                 <div className="w-20 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${(procAvg / 5) * 100}%`, background: DOMAIN_COLORS[domain] }} />
                 </div>
@@ -259,42 +387,54 @@ export default function COBIT2019AssessmentPage() {
               {/* Practice Rows */}
               {isOpen && (
                 <div className="border-t">
+                  {/* Interview hint for domain */}
+                  <div className="px-4 py-2 text-xs opacity-60 border-b" style={{ background: DOMAIN_COLORS[domain] + "08" }}>
+                    <b>Interview:</b> {guide.who.join(", ")} &nbsp;·&nbsp; <b>เอกสาร:</b> {guide.docs.join(", ")}
+                  </div>
+
                   {/* Column Header */}
-                  <div className="grid grid-cols-[1fr_180px_180px_80px] gap-3 px-4 py-2 text-xs font-semibold opacity-50 border-b">
-                    <span>Practice</span>
-                    <span>Current Level</span>
-                    <span>Target Level</span>
+                  <div className="grid grid-cols-[1fr_200px_200px_80px] gap-3 px-4 py-2 text-xs font-semibold opacity-50 border-b">
+                    <span>Practice + กิจกรรมที่ต้องมีหลักฐาน</span>
+                    <span>Current Level (สถานะปัจจุบัน)</span>
+                    <span>Target Level (เป้าหมาย)</span>
                     <span>Gap</span>
                   </div>
+
                   {practices.map(p => {
                     const s = getScore(p.id)
                     const gap = s.target - s.current
                     return (
-                      <div key={p.id} className="grid grid-cols-[1fr_180px_180px_80px] gap-3 px-4 py-3 border-b last:border-b-0 items-start hover:bg-white/3">
+                      <div key={p.id} className="grid grid-cols-[1fr_200px_200px_80px] gap-3 px-4 py-3 border-b last:border-b-0 items-start hover:bg-white/3">
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mb-1">
                             <span className="text-xs font-mono opacity-50">{p.id}</span>
                             <span className="text-sm font-medium">{p.name}</span>
                           </div>
-                          {gap > 0 && (
+                          {showActivityDesc && (
                             <div className="mt-2 space-y-1">
-                              {s.current < 2 && p.level2 && (
+                              {p.level2 && (
                                 <div className="text-xs p-2 rounded" style={{ background: "#F59E0B11", borderLeft: "3px solid #F59E0B" }}>
-                                  <span className="font-semibold text-amber-500">L2: </span>
-                                  <span className="opacity-70">{p.level2.substring(0, 200)}{p.level2.length > 200 ? "…" : ""}</span>
+                                  <span className="font-semibold text-amber-500">L2 กิจกรรมที่ต้องมี: </span>
+                                  <span className="opacity-70">{p.level2.substring(0, 250)}{p.level2.length > 250 ? "…" : ""}</span>
                                 </div>
                               )}
-                              {s.target >= 3 && p.level3 && (
+                              {p.level3 && (
                                 <div className="text-xs p-2 rounded" style={{ background: "#3B82F611", borderLeft: "3px solid #3B82F6" }}>
-                                  <span className="font-semibold text-blue-500">L3: </span>
-                                  <span className="opacity-70">{p.level3.substring(0, 200)}{p.level3.length > 200 ? "…" : ""}</span>
+                                  <span className="font-semibold text-blue-500">L3 กิจกรรมที่ต้องมี: </span>
+                                  <span className="opacity-70">{p.level3.substring(0, 250)}{p.level3.length > 250 ? "…" : ""}</span>
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
-                        <ScoreCell value={s.current} onChange={v => setScore(p.id, "current", v)} color={LEVEL_COLORS[s.current]} />
-                        <ScoreCell value={s.target} onChange={v => setScore(p.id, "target", v)} color="#6B7280" />
+                        <div className="pt-1">
+                          <ScoreCell value={s.current} onChange={v => setScore(p.id, "current", v)} color={LEVEL_COLORS[s.current]} />
+                          <div className="text-xs opacity-50 mt-1">{LEVEL_LABELS[s.current]}</div>
+                        </div>
+                        <div className="pt-1">
+                          <ScoreCell value={s.target} onChange={v => setScore(p.id, "target", v)} color="#6B7280" />
+                          <div className="text-xs opacity-50 mt-1">{LEVEL_LABELS[s.target]}</div>
+                        </div>
                         <div className="pt-1"><GapBadge gap={gap} /></div>
                       </div>
                     )
