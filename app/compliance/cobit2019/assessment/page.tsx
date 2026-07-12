@@ -3,20 +3,51 @@
 import { useState, useMemo } from "react"
 import { COBIT_PRACTICES, COBIT_DOMAINS, type CobitDomain } from "@/lib/cobit-checklist-data"
 
-const LEVEL_LABELS = ["0 - Incomplete", "1 - Initial", "2 - Managed", "3 - Established", "4 - Predictable", "5 - Optimizing"]
+const LEVEL_LABELS = [
+  "0 — Incomplete",
+  "1 — Initial",
+  "2 — Managed",
+  "3 — Defined",
+  "4 — Quantitatively Managed",
+  "5 — Optimizing",
+]
 const LEVEL_COLORS = ["#6B7280", "#EF4444", "#F59E0B", "#3B82F6", "#8B5CF6", "#10B981"]
 const DOMAIN_COLORS: Record<string, string> = {
   EDM: "#8B5CF6", APO: "#3B82F6", BAI: "#10B981", DSS: "#F59E0B", MEA: "#EF4444"
 }
 
-// Assessment criteria per level
+// Assessment criteria per level — aligned with COBIT 2019 Figure 2.3
 const LEVEL_CRITERIA = [
-  { label: "L0 — Incomplete", color: "#6B7280", evidence: "ไม่มีหลักฐานว่าองค์กรปฏิบัติกิจกรรมนี้เลย หรือปฏิบัติแต่ไม่บรรลุผล" },
-  { label: "L1 — Initial", color: "#EF4444", evidence: "มีหลักฐานว่าองค์กรรับรู้ถึงความจำเป็น และมีการปฏิบัติบ้าง แต่ยังไม่เป็นระบบ ไม่มีเอกสาร" },
-  { label: "L2 — Managed", color: "#F59E0B", evidence: "มีการวางแผน ติดตาม และปรับปรุง process อย่างสม่ำเสมอ มีเอกสาร policy/procedure มีผู้รับผิดชอบชัดเจน" },
-  { label: "L3 — Established", color: "#3B82F6", evidence: "มี standard process ใช้ทั่วทั้งองค์กร มีการ training ผู้ปฏิบัติ มี work product ที่กำหนดไว้ครบ ปฏิบัติสม่ำเสมอทุกหน่วยงาน" },
-  { label: "L4 — Predictable", color: "#8B5CF6", evidence: "วัดผล process เชิงปริมาณได้ มีการใช้ metrics/KPIs ควบคุม process performance สามารถคาดเดาผลลัพธ์ได้" },
-  { label: "L5 — Optimizing", color: "#10B981", evidence: "มีการปรับปรุง process อย่างต่อเนื่อง (continuous improvement) ใช้ข้อมูลเชิงปริมาณวิเคราะห์จุดอ่อนและนวัตกรรมใหม่" },
+  {
+    label: "0 — Incomplete",
+    color: "#6B7280",
+    evidence: "Lack of any basic capability · Incomplete approach to address governance and management purpose · May or may not be meeting the intent of any process practices",
+  },
+  {
+    label: "1 — Initial",
+    color: "#EF4444",
+    evidence: "The process more or less achieves its purpose through the application of an incomplete set of activities that can be characterized as initial or intuitive—not very organized.",
+  },
+  {
+    label: "2 — Managed",
+    color: "#F59E0B",
+    evidence: "The process achieves its purpose through the application of a basic, yet complete, set of activities that can be characterized as performed.",
+  },
+  {
+    label: "3 — Defined",
+    color: "#3B82F6",
+    evidence: "The process achieves its purpose in a much more organized way using organizational assets. Processes typically are well defined.",
+  },
+  {
+    label: "4 — Quantitatively Managed",
+    color: "#8B5CF6",
+    evidence: "The process achieves its purpose, is well defined, and its performance is (quantitatively) measured.",
+  },
+  {
+    label: "5 — Optimizing",
+    color: "#10B981",
+    evidence: "The process achieves its purpose, is well defined, its performance is measured to improve performance and continuous improvement is pursued.",
+  },
 ]
 
 // Interview guide per domain
