@@ -3,7 +3,12 @@
 import { useState, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { SidebarNav } from "@/components/grc/sidebar-nav"
-import { ArrowLeft, ArrowRight, RefreshCcw, Layers2, Check, ChevronDown, ChevronUp } from "lucide-react"
+import { ArrowLeft, ArrowRight, RefreshCcw, Layers2, Check, ChevronDown, ChevronUp, BarChart2, List } from "lucide-react"
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  BarChart, Bar, XAxis, YAxis, Cell, ReferenceLine,
+  ResponsiveContainer, Tooltip, CartesianGrid,
+} from "recharts"
 
 // ─── Data (unchanged) ────────────────────────────────────────────────────────
 
@@ -300,35 +305,150 @@ function Section({ title, badge, children, defaultOpen=false }: { title:string; 
   )
 }
 
+// ─── Chart Components ─────────────────────────────────────────────────────────
+
+type ScoredObj = ReturnType<typeof computeScores>[number]
+
+function ObjRadar({ scores }: { scores: ScoredObj[] }) {
+  const data = scores.map(s => ({ id: s.id, v: Math.round((s.score + 100) / 2) }))
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <RadarChart data={data} outerRadius="75%" margin={{ top:8, right:8, bottom:8, left:8 }}>
+        <PolarGrid stroke="rgba(255,255,255,0.07)" />
+        <PolarAngleAxis dataKey="id" tick={{ fontSize:6.5, fill:MUTED }} />
+        <Radar dataKey="v" stroke={TEAL} fill={TEAL} fillOpacity={0.18} strokeWidth={1.5} />
+        <Tooltip
+          contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:11 }}
+          formatter={(v: number) => [v*2-100 > 0 ? `+${v*2-100}` : v*2-100, "Score"]}
+          labelStyle={{ color:TEXT }}
+        />
+      </RadarChart>
+    </ResponsiveContainer>
+  )
+}
+
+function ObjHorizBar({ scores }: { scores: ScoredObj[] }) {
+  const sorted = [...scores].sort((a,b) => b.score - a.score)
+  return (
+    <ResponsiveContainer width="100%" height={sorted.length * 20 + 30}>
+      <BarChart data={sorted} layout="vertical" barSize={8} margin={{ top:4, right:28, left:48, bottom:4 }}>
+        <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.05)" />
+        <XAxis type="number" domain={[-100,100]} tick={{ fontSize:8, fill:MUTED }} tickLine={false} axisLine={{ stroke:"rgba(255,255,255,0.08)" }} />
+        <YAxis type="category" dataKey="id" tick={{ fontSize:8, fill:TEXT }} width={44} tickLine={false} axisLine={false} />
+        <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
+        <Tooltip
+          contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:11 }}
+          formatter={(v: number) => [v > 0 ? `+${v}` : v, "Relative Importance"]}
+          labelFormatter={(id: string) => { const s = scores.find(x=>x.id===id); return s ? `${s.id} — ${s.name}` : id }}
+          labelStyle={{ color:TEXT }}
+        />
+        <Bar dataKey="score" radius={[0,3,3,0]}>
+          {sorted.map((s,i) => <Cell key={i} fill={s.score>=25 ? TEAL : s.score>=0 ? "#F59E0B" : "#6B7E96"} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+function DFInputChart({ options, values, max=5, shortLabels }: { options:string[]; values:number[]; max?:number; shortLabels?:string[] }) {
+  const data = options.map((opt,i) => ({
+    name: shortLabels ? shortLabels[i] : opt.split(/[/,]/)[0].trim().substring(0,14),
+    value: values[i],
+  }))
+  return (
+    <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization</p>
+      <ResponsiveContainer width="100%" height={90}>
+        <BarChart data={data} margin={{ top:4, right:4, left:-18, bottom:20 }}>
+          <XAxis dataKey="name" tick={{ fontSize:8, fill:MUTED }} interval={0} angle={-15} textAnchor="end" />
+          <YAxis domain={[0, max]} tick={{ fontSize:8, fill:MUTED }} tickCount={max+1} />
+          <Bar dataKey="value" fill={TEAL} radius={[3,3,0,0]} fillOpacity={0.85}>
+            {data.map((_,i) => <Cell key={i} fill={TEAL} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function DFPercentChart({ options, values, shortLabels }: { options:string[]; values:number[]; shortLabels?:string[] }) {
+  const data = options.map((opt,i) => ({
+    name: shortLabels ? shortLabels[i] : opt.split(/[/,]/)[0].trim().substring(0,12),
+    value: Math.round(values[i]*100),
+  }))
+  return (
+    <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization</p>
+      <ResponsiveContainer width="100%" height={80}>
+        <BarChart data={data} margin={{ top:4, right:4, left:-18, bottom:16 }}>
+          <XAxis dataKey="name" tick={{ fontSize:8, fill:MUTED }} interval={0} />
+          <YAxis domain={[0,100]} tick={{ fontSize:8, fill:MUTED }} tickCount={3} />
+          <Bar dataKey="value" fill="#60A5FA" radius={[3,3,0,0]} fillOpacity={0.85} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 // ─── Results Panel ────────────────────────────────────────────────────────────
 
-function ResultsPanel({ scores, label }: { scores: ReturnType<typeof computeScores>; label: string }) {
+function ResultsPanel({ scores, label }: { scores: ScoredObj[]; label: string }) {
+  const [view, setView] = useState<"chart"|"list">("chart")
   const sorted = [...scores].sort((a,b)=>b.score-a.score)
   const high = scores.filter(s=>s.score>=25).length
   const med  = scores.filter(s=>s.score>=0&&s.score<25).length
   const low  = scores.filter(s=>s.score<0).length
   return (
-    <div className="h-full overflow-y-auto py-4 px-4 space-y-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color:TEAL }}>{label}</p>
-      <div className="grid grid-cols-3 gap-2">
-        {[["High",high,TEAL],["Medium",med,"#F59E0B"],["Low",low,"#6B7E96"]].map(([l,c,col])=>(
-          <div key={String(l)} className="rounded-xl p-2.5" style={{ background:`${col}10`, border:`1px solid ${col}20` }}>
-            <p className="text-[24px] font-black leading-none" style={{ color:String(col) }}>{String(c)}</p>
-            <p className="text-[9.5px] mt-0.5" style={{ color:String(col) }}>{l}</p>
+    <div className="h-full overflow-y-auto py-3 px-3 space-y-2">
+      {/* label + view toggle */}
+      <div className="flex items-center justify-between">
+        <p className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color:TEAL }}>{label}</p>
+        <div className="flex rounded-lg overflow-hidden" style={{ border:`1px solid ${BORDER}` }}>
+          {([["chart","📊"] as const,["list","☰"] as const]).map(([v,icon])=>(
+            <button key={v} onClick={()=>setView(v)}
+              className="px-2.5 py-1 text-[10px] font-semibold transition-all"
+              style={{ background: view===v ? TEAL : "transparent", color: view===v ? BG : MUTED }}>
+              {icon}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* summary counts */}
+      <div className="grid grid-cols-3 gap-1.5">
+        {([["High",high,TEAL],["Medium",med,"#F59E0B"],["Low",low,"#6B7E96"]] as [string,number,string][]).map(([l,c,col])=>(
+          <div key={l} className="rounded-lg p-2" style={{ background:`${col}10`, border:`1px solid ${col}20` }}>
+            <p className="text-[22px] font-black leading-none" style={{ color:col }}>{c}</p>
+            <p className="text-[8.5px]" style={{ color:col }}>{l}</p>
           </div>
         ))}
       </div>
-      <div className="space-y-1">
-        {sorted.map(s=>(
-          <div key={s.id} className="flex items-center gap-2 rounded-lg px-2.5 py-2 transition-all" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
-            <DomainBadge domain={s.domain}/>
-            <span className="text-[11px] font-bold shrink-0 w-10" style={{ color:TEXT }}>{s.id}</span>
-            <span className="text-[10px] flex-1 min-w-0 truncate" style={{ color:MUTED }} title={s.name}>{s.name}</span>
-            <PriorityBadge score={s.score}/>
-            <ScoreBar score={s.score}/>
+      {/* chart view */}
+      {view==="chart" && (
+        <div className="space-y-2">
+          <div className="rounded-lg px-1 py-2" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+            <p className="text-[9px] font-semibold text-center mb-1" style={{ color:MUTED }}>Radar — Governance Objectives</p>
+            <ObjRadar scores={scores}/>
           </div>
-        ))}
-      </div>
+          <div className="rounded-lg px-1 py-2 overflow-x-auto" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+            <p className="text-[9px] font-semibold px-2 mb-1" style={{ color:MUTED }}>Relative Importance (−100 → +100)</p>
+            <ObjHorizBar scores={sorted}/>
+          </div>
+        </div>
+      )}
+      {/* list view */}
+      {view==="list" && (
+        <div className="space-y-1">
+          {sorted.map(s=>(
+            <div key={s.id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+              <DomainBadge domain={s.domain}/>
+              <span className="text-[10px] font-bold shrink-0 w-9" style={{ color:TEXT }}>{s.id}</span>
+              <span className="text-[9.5px] flex-1 min-w-0 truncate" style={{ color:MUTED }} title={s.name}>{s.name}</span>
+              <PriorityBadge score={s.score}/>
+              <ScoreBar score={s.score}/>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -435,18 +555,22 @@ export default function COBIT2019Page() {
                 <Section badge="DF1" title="Enterprise Strategy" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของแต่ละ strategy archetype (1=น้อย, 5=มาก)</div>
                   {DF1_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df1[i]} min={1} max={5} step={1} onChange={v=>updateDf("df1",i,v)}/>)}
+                  <DFInputChart options={DF1_OPTS} values={df.df1} max={5} shortLabels={["Growth","Innovation","Cost","Stability"]}/>
                 </Section>
                 <Section badge="DF2" title="Enterprise Goals">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของ enterprise goals (1=น้อย, 5=มาก)</div>
                   {EG_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df2[i]} min={1} max={5} step={1} onChange={v=>updateDf("df2",i,v)}/>)}
+                  <DFInputChart options={EG_OPTS} values={df.df2} max={5} shortLabels={EG_OPTS.map((_,i)=>`EG${String(i+1).padStart(2,"0")}`)}/>
                 </Section>
                 <Section badge="DF3" title="Risk Profile">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุระดับ impact ของแต่ละ risk scenario (1=น้อย, 5=มาก)</div>
                   {DF3_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df3[i]} min={1} max={5} step={1} onChange={v=>updateDf("df3",i,v)}/>)}
+                  <DFInputChart options={DF3_OPTS} values={df.df3} max={5} shortLabels={DF3_OPTS.map((_,i)=>`R${i+1}`)}/>
                 </Section>
                 <Section badge="DF4" title="I&T-Related Issues">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุปัญหาที่เกิดขึ้น: — = ไม่มี, L = น้อย, M = ปานกลาง, H = มาก</div>
                   <IssueInputs options={DF4_OPTS} values={df.df4} onChange={(i,v)=>updateDf("df4",i,v)}/>
+                  <DFInputChart options={DF4_OPTS} values={df.df4} max={3} shortLabels={DF4_OPTS.map((_,i)=>`I${i+1}`)}/>
                 </Section>
                 {/* Next button */}
                 <button onClick={()=>setStep(1)}
@@ -483,6 +607,18 @@ export default function COBIT2019Page() {
                       <p className="text-[11px] mt-1" style={{ color:c }}>{l}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* Charts */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="rounded-xl p-3" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+                    <p className="text-[10px] font-semibold mb-1 text-center" style={{ color:MUTED }}>Radar — Governance Objectives</p>
+                    <ObjRadar scores={initialScores}/>
+                  </div>
+                  <div className="rounded-xl p-3 overflow-y-auto" style={{ background:CARD, border:`1px solid ${BORDER}`, maxHeight:310 }}>
+                    <p className="text-[10px] font-semibold mb-1" style={{ color:MUTED }}>Relative Importance (−100 → +100)</p>
+                    <ObjHorizBar scores={[...initialScores].sort((a,b)=>b.score-a.score)}/>
+                  </div>
                 </div>
 
                 {/* Top objectives callout */}
@@ -538,26 +674,32 @@ export default function COBIT2019Page() {
                 <Section badge="DF5" title="Threat Landscape" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>สัดส่วน threat level (รวม = 100%)</div>
                   <PercentInputs options={DF5_OPTS} values={df.df5} onChange={(i,v)=>updateDf("df5",i,v)}/>
+                  <DFPercentChart options={DF5_OPTS} values={df.df5}/>
                 </Section>
                 <Section badge="DF6" title="Compliance Requirements">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระดับข้อกำหนดด้าน compliance (รวม = 100%)</div>
                   <PercentInputs options={DF6_OPTS} values={df.df6} onChange={(i,v)=>updateDf("df6",i,v)}/>
+                  <DFPercentChart options={DF6_OPTS} values={df.df6}/>
                 </Section>
                 <Section badge="DF7" title="Role of IT">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>บทบาทของ IT ในองค์กร (1=น้อย, 5=มาก)</div>
                   {DF7_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df7[i]} min={1} max={5} step={1} onChange={v=>updateDf("df7",i,v)}/>)}
+                  <DFInputChart options={DF7_OPTS} values={df.df7} max={5}/>
                 </Section>
                 <Section badge="DF8" title="Sourcing Model for IT">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>สัดส่วน sourcing model (รวม = 100%)</div>
                   <PercentInputs options={DF8_OPTS} values={df.df8} onChange={(i,v)=>updateDf("df8",i,v)}/>
+                  <DFPercentChart options={DF8_OPTS} values={df.df8}/>
                 </Section>
                 <Section badge="DF9" title="IT Implementation Methods">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>วิธีการ implement IT (รวม = 100%)</div>
                   <PercentInputs options={DF9_OPTS} values={df.df9} onChange={(i,v)=>updateDf("df9",i,v)}/>
+                  <DFPercentChart options={DF9_OPTS} values={df.df9}/>
                 </Section>
                 <Section badge="DF10" title="Technology Adoption Strategy">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>กลยุทธ์การ adopt เทคโนโลยีใหม่ (รวม = 100%)</div>
                   <PercentInputs options={DF10_OPTS} values={df.df10} onChange={(i,v)=>updateDf("df10",i,v)}/>
+                  <DFPercentChart options={DF10_OPTS} values={df.df10}/>
                 </Section>
                 <div className="flex gap-2">
                   <button onClick={()=>setStep(1)} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-medium" style={{ background:"rgba(255,255,255,0.06)", color:MUTED, border:`1px solid ${BORDER}` }}>
@@ -596,6 +738,18 @@ export default function COBIT2019Page() {
                       <p className="text-[11px] mt-1" style={{ color:c }}>{l}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* Charts */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="rounded-xl p-3" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+                    <p className="text-[10px] font-semibold mb-1 text-center" style={{ color:MUTED }}>Radar — All 40 Objectives</p>
+                    <ObjRadar scores={fullScores}/>
+                  </div>
+                  <div className="rounded-xl p-3 overflow-y-auto" style={{ background:CARD, border:`1px solid ${BORDER}`, maxHeight:310 }}>
+                    <p className="text-[10px] font-semibold mb-1" style={{ color:MUTED }}>Relative Importance (−100 → +100)</p>
+                    <ObjHorizBar scores={[...fullScores].sort((a,b)=>b.score-a.score)}/>
+                  </div>
                 </div>
 
                 {/* Change vs initial */}
