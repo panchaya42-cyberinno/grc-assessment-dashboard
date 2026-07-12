@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { SidebarNav } from "@/components/grc/sidebar-nav"
-import { ArrowLeft, ArrowRight, RotateCcw, Info, Layers, Check, ChevronDown, ChevronUp } from "lucide-react"
+import { ArrowLeft, ArrowRight, RefreshCcw, Layers2, Check, ChevronDown, ChevronUp } from "lucide-react"
 
 // ─── Data (unchanged) ────────────────────────────────────────────────────────
 
@@ -402,7 +402,7 @@ export default function COBIT2019Page() {
           </Link>
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg shrink-0" style={{ background:"rgba(0,212,160,0.12)", border:"1px solid rgba(0,212,160,0.25)" }}>
-              <Layers className="h-3.5 w-3.5" style={{ color:TEAL }}/>
+              <Layers2 className="h-3.5 w-3.5" style={{ color:TEAL }}/>
             </div>
             <div>
               <h1 className="text-[13px] font-bold leading-tight" style={{ color:TEXT }}>COBIT 2019 Design Toolkit</h1>
@@ -415,7 +415,7 @@ export default function COBIT2019Page() {
             <button onClick={()=>{ setDf({...DEFAULT_STATE}); setStep(0) }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all"
               style={{ color:MUTED, border:`1px solid ${BORDER}` }}>
-              <RotateCcw className="h-3 w-3"/> Reset
+              <RefreshCcw className="h-3 w-3"/> Reset
             </button>
           </div>
         </div>
