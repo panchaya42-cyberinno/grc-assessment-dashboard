@@ -231,32 +231,46 @@ function PriorityBadge({ score }: { score: number }) {
   return <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded shrink-0" style={{ color, background:`${color}18`, border:`1px solid ${color}30` }}>{label}</span>
 }
 
-function SliderInput({ label, value, min, max, step, onChange }: { label:string; value:number; min:number; max:number; step:number; onChange:(v:number)=>void }) {
+// Baseline badge — shows locked reference value (read-only)
+function BaselineBadge({ value, isPercent=false }: { value: number; isPercent?: boolean }) {
+  const label = isPercent ? `${Math.round(value*100)}%` : String(value)
   return (
-    <div className="flex items-center gap-3 py-1">
+    <span className="shrink-0 text-[9.5px] font-mono px-1.5 py-0.5 rounded"
+      style={{ color:MUTED, background:"rgba(255,255,255,0.06)", border:`1px solid rgba(255,255,255,0.1)`, minWidth:28, textAlign:"center", display:"inline-block" }}
+      title="Baseline (ค่ามาตรฐาน — ล็อกตาม COBIT 2019)">
+      B:{label}
+    </span>
+  )
+}
+
+function SliderInput({ label, value, baseline, min, max, step, onChange }: { label:string; value:number; baseline?:number; min:number; max:number; step:number; onChange:(v:number)=>void }) {
+  return (
+    <div className="flex items-center gap-2 py-1">
       <span className="text-[11px] truncate flex-1" style={{ color: MUTED }}>{label}</span>
+      {baseline !== undefined && <BaselineBadge value={baseline}/>}
       <div className="flex items-center gap-2 shrink-0">
         <input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(parseFloat(e.target.value))}
-          className="w-24 h-1.5 appearance-none rounded-full cursor-pointer" style={{ accentColor: TEAL }} />
-        <span className="text-[11px] font-mono w-8 text-right" style={{ color: TEAL }}>{value}</span>
+          className="w-20 h-1.5 appearance-none rounded-full cursor-pointer" style={{ accentColor: TEAL }} />
+        <span className="text-[11px] font-mono w-6 text-right font-bold" style={{ color: TEAL }}>{value}</span>
       </div>
     </div>
   )
 }
 
-function PercentInputs({ options, values, onChange }: { options:string[]; values:number[]; onChange:(i:number,v:number)=>void }) {
+function PercentInputs({ options, values, baseline, onChange }: { options:string[]; values:number[]; baseline?:number[]; onChange:(i:number,v:number)=>void }) {
   const total = values.reduce((a,b)=>a+b,0)
   return (
     <div className="space-y-2">
       {options.map((opt,i) => {
         const pct = Math.round(values[i]*100)
         return (
-          <div key={i} className="flex items-center gap-3">
+          <div key={i} className="flex items-center gap-2">
             <span className="text-[11px] truncate flex-1" style={{ color: MUTED }}>{opt}</span>
+            {baseline && <BaselineBadge value={baseline[i]} isPercent/>}
             <div className="flex items-center gap-2 shrink-0">
               <input type="range" min={0} max={100} step={5} value={pct} onChange={e=>onChange(i,parseInt(e.target.value)/100)}
-                className="w-24 h-1.5 appearance-none rounded-full cursor-pointer" style={{ accentColor: TEAL }} />
-              <span className="text-[11px] font-mono w-10 text-right" style={{ color: pct===0?MUTED:TEAL }}>{pct}%</span>
+                className="w-20 h-1.5 appearance-none rounded-full cursor-pointer" style={{ accentColor: TEAL }} />
+              <span className="text-[11px] font-mono w-10 text-right font-bold" style={{ color: pct===0?MUTED:TEAL }}>{pct}%</span>
             </div>
           </div>
         )
@@ -266,12 +280,19 @@ function PercentInputs({ options, values, onChange }: { options:string[]; values
   )
 }
 
-function IssueInputs({ options, values, onChange }: { options:string[]; values:number[]; onChange:(i:number,v:number)=>void }) {
+const ISSUE_LABELS = ["—","L","M","H"]
+
+function IssueInputs({ options, values, baseline, onChange }: { options:string[]; values:number[]; baseline?:number[]; onChange:(i:number,v:number)=>void }) {
   return (
     <div className="space-y-1.5">
       {options.map((opt,i) => (
-        <div key={i} className="flex items-start gap-3 py-0.5">
+        <div key={i} className="flex items-start gap-2 py-0.5">
           <span className="text-[11px] leading-tight flex-1" style={{ color:MUTED, paddingTop:2 }}>{opt}</span>
+          {baseline && (
+            <span className="shrink-0 text-[9.5px] font-mono px-1.5 py-0.5 rounded self-start mt-0.5"
+              style={{ color:MUTED, background:"rgba(255,255,255,0.06)", border:`1px solid rgba(255,255,255,0.1)` }}
+              title="Baseline">B:{ISSUE_LABELS[baseline[i]]}</span>
+          )}
           <div className="flex items-center gap-1 shrink-0">
             {[0,1,2,3].map(v => (
               <button key={v} onClick={()=>onChange(i,v)}
@@ -281,7 +302,7 @@ function IssueInputs({ options, values, onChange }: { options:string[]; values:n
                   color: values[i]===v?"#fff":MUTED,
                   border:`1px solid ${values[i]===v?"transparent":"rgba(255,255,255,0.08)"}`,
                 }}>
-                {v===0?"—":v===1?"L":v===2?"M":"H"}
+                {ISSUE_LABELS[v]}
               </button>
             ))}
           </div>
@@ -606,22 +627,22 @@ export default function COBIT2019Page() {
                 </div>
                 <Section badge="DF1" title="Enterprise Strategy" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของแต่ละ strategy archetype (1=น้อย, 5=มาก)</div>
-                  {DF1_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df1[i]} min={1} max={5} step={1} onChange={v=>updateDf("df1",i,v)}/>)}
+                  {DF1_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df1[i]} baseline={DF1_BASE[i]} min={1} max={5} step={1} onChange={v=>updateDf("df1",i,v)}/>)}
                   <DFInputChart options={DF1_OPTS} values={df.df1} baseline={DF1_BASE} max={5}/>
                 </Section>
                 <Section badge="DF2" title="Enterprise Goals">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของ enterprise goals (1=น้อย, 5=มาก)</div>
-                  {EG_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df2[i]} min={1} max={5} step={1} onChange={v=>updateDf("df2",i,v)}/>)}
+                  {EG_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df2[i]} baseline={EG_BASE[i]} min={1} max={5} step={1} onChange={v=>updateDf("df2",i,v)}/>)}
                   <DFInputChart options={EG_OPTS} values={df.df2} baseline={EG_BASE} max={5}/>
                 </Section>
                 <Section badge="DF3" title="Risk Profile">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุระดับ impact ของแต่ละ risk scenario (1=น้อย, 5=มาก)</div>
-                  {DF3_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df3[i]} min={1} max={5} step={1} onChange={v=>updateDf("df3",i,v)}/>)}
+                  {DF3_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df3[i]} baseline={DF3_BASE[i]} min={1} max={5} step={1} onChange={v=>updateDf("df3",i,v)}/>)}
                   <DFInputChart options={DF3_OPTS} values={df.df3} baseline={DF3_BASE} max={5}/>
                 </Section>
                 <Section badge="DF4" title="I&T-Related Issues">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุปัญหาที่เกิดขึ้น: — = ไม่มี, L = น้อย, M = ปานกลาง, H = มาก</div>
-                  <IssueInputs options={DF4_OPTS} values={df.df4} onChange={(i,v)=>updateDf("df4",i,v)}/>
+                  <IssueInputs options={DF4_OPTS} values={df.df4} baseline={DF4_BASE} onChange={(i,v)=>updateDf("df4",i,v)}/>
                   <DFInputChart options={DF4_OPTS} values={df.df4} baseline={DF4_BASE} max={3}/>
                 </Section>
                 {/* Next button */}
@@ -725,32 +746,32 @@ export default function COBIT2019Page() {
                 </div>
                 <Section badge="DF5" title="Threat Landscape" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>สัดส่วน threat level (รวม = 100%)</div>
-                  <PercentInputs options={DF5_OPTS} values={df.df5} onChange={(i,v)=>updateDf("df5",i,v)}/>
+                  <PercentInputs options={DF5_OPTS} values={df.df5} baseline={DF5_BASE} onChange={(i,v)=>updateDf("df5",i,v)}/>
                   <DFPercentChart options={DF5_OPTS} values={df.df5} baseline={DF5_BASE}/>
                 </Section>
                 <Section badge="DF6" title="Compliance Requirements">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระดับข้อกำหนดด้าน compliance (รวม = 100%)</div>
-                  <PercentInputs options={DF6_OPTS} values={df.df6} onChange={(i,v)=>updateDf("df6",i,v)}/>
+                  <PercentInputs options={DF6_OPTS} values={df.df6} baseline={DF6_BASE} onChange={(i,v)=>updateDf("df6",i,v)}/>
                   <DFPercentChart options={DF6_OPTS} values={df.df6} baseline={DF6_BASE}/>
                 </Section>
                 <Section badge="DF7" title="Role of IT">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>บทบาทของ IT ในองค์กร (1=น้อย, 5=มาก)</div>
-                  {DF7_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df7[i]} min={1} max={5} step={1} onChange={v=>updateDf("df7",i,v)}/>)}
+                  {DF7_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df7[i]} baseline={DF7_BASE[i]} min={1} max={5} step={1} onChange={v=>updateDf("df7",i,v)}/>)}
                   <DFInputChart options={DF7_OPTS} values={df.df7} baseline={DF7_BASE} max={5}/>
                 </Section>
                 <Section badge="DF8" title="Sourcing Model for IT">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>สัดส่วน sourcing model (รวม = 100%)</div>
-                  <PercentInputs options={DF8_OPTS} values={df.df8} onChange={(i,v)=>updateDf("df8",i,v)}/>
+                  <PercentInputs options={DF8_OPTS} values={df.df8} baseline={DF8_BASE} onChange={(i,v)=>updateDf("df8",i,v)}/>
                   <DFPercentChart options={DF8_OPTS} values={df.df8} baseline={DF8_BASE}/>
                 </Section>
                 <Section badge="DF9" title="IT Implementation Methods">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>วิธีการ implement IT (รวม = 100%)</div>
-                  <PercentInputs options={DF9_OPTS} values={df.df9} onChange={(i,v)=>updateDf("df9",i,v)}/>
+                  <PercentInputs options={DF9_OPTS} values={df.df9} baseline={DF9_BASE} onChange={(i,v)=>updateDf("df9",i,v)}/>
                   <DFPercentChart options={DF9_OPTS} values={df.df9} baseline={DF9_BASE}/>
                 </Section>
                 <Section badge="DF10" title="Technology Adoption Strategy">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>กลยุทธ์การ adopt เทคโนโลยีใหม่ (รวม = 100%)</div>
-                  <PercentInputs options={DF10_OPTS} values={df.df10} onChange={(i,v)=>updateDf("df10",i,v)}/>
+                  <PercentInputs options={DF10_OPTS} values={df.df10} baseline={DF10_BASE} onChange={(i,v)=>updateDf("df10",i,v)}/>
                   <DFPercentChart options={DF10_OPTS} values={df.df10} baseline={DF10_BASE}/>
                 </Section>
                 <div className="flex gap-2">
