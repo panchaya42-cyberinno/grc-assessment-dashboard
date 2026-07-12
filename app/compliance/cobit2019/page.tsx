@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, RefreshCcw, Layers2, Check, ChevronDown, Chevron
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   BarChart, Bar, XAxis, YAxis, Cell, ReferenceLine,
-  ResponsiveContainer, Tooltip, CartesianGrid,
+  ResponsiveContainer, Tooltip, CartesianGrid, LabelList,
 } from "recharts"
 
 // ─── Data (unchanged) ────────────────────────────────────────────────────────
@@ -350,20 +350,27 @@ function ObjHorizBar({ scores }: { scores: ScoredObj[] }) {
   )
 }
 
-function DFInputChart({ options, values, max=5, shortLabels }: { options:string[]; values:number[]; max?:number; shortLabels?:string[] }) {
-  const data = options.map((opt,i) => ({
-    name: shortLabels ? shortLabels[i] : opt.split(/[/,]/)[0].trim().substring(0,14),
-    value: values[i],
-  }))
+const DF_BAR_COLORS = [
+  "#6B8CC4","#C4896E","#9E9E9E","#C4A852",
+  "#5BAAA0","#9B7FD4","#D46B8C","#5BAA7C",
+  "#C47B5B","#6BB4C4","#B4C46B","#C46B9B",
+  "#7BC45B","#C4B56B","#6B7BC4","#C46B6B",
+  "#5BC4B4","#A06BC4","#C49E6B","#6BC48C",
+]
+
+function DFInputChart({ options, values, max=5 }: { options:string[]; values:number[]; max?:number }) {
+  const data = options.map((opt,i) => ({ name: opt, value: values[i], color: DF_BAR_COLORS[i % DF_BAR_COLORS.length] }))
+  const labelW = Math.max(...options.map(o => o.length)) > 20 ? 160 : 130
   return (
     <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization</p>
-      <ResponsiveContainer width="100%" height={90}>
-        <BarChart data={data} margin={{ top:4, right:4, left:-18, bottom:20 }}>
-          <XAxis dataKey="name" tick={{ fontSize:8, fill:MUTED }} interval={0} angle={-15} textAnchor="end" />
-          <YAxis domain={[0, max]} tick={{ fontSize:8, fill:MUTED }} tickCount={max+1} />
-          <Bar dataKey="value" fill={TEAL} radius={[3,3,0,0]} fillOpacity={0.85}>
-            {data.map((_,i) => <Cell key={i} fill={TEAL} />)}
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Input Visualization</p>
+      <ResponsiveContainer width="100%" height={options.length * 34 + 24}>
+        <BarChart data={data} layout="vertical" barSize={20} margin={{ top:0, right:36, left:0, bottom:4 }}>
+          <XAxis type="number" domain={[0, max]} tick={{ fontSize:8, fill:MUTED }} tickCount={max+1} axisLine={false} tickLine={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize:9.5, fill:TEXT }} width={labelW} axisLine={false} tickLine={false} />
+          <Bar dataKey="value" radius={[0,4,4,0]}>
+            {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.82} />)}
+            <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -371,19 +378,19 @@ function DFInputChart({ options, values, max=5, shortLabels }: { options:string[
   )
 }
 
-function DFPercentChart({ options, values, shortLabels }: { options:string[]; values:number[]; shortLabels?:string[] }) {
-  const data = options.map((opt,i) => ({
-    name: shortLabels ? shortLabels[i] : opt.split(/[/,]/)[0].trim().substring(0,12),
-    value: Math.round(values[i]*100),
-  }))
+function DFPercentChart({ options, values }: { options:string[]; values:number[] }) {
+  const data = options.map((opt,i) => ({ name: opt, value: Math.round(values[i]*100), color: DF_BAR_COLORS[i % DF_BAR_COLORS.length] }))
   return (
     <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization</p>
-      <ResponsiveContainer width="100%" height={80}>
-        <BarChart data={data} margin={{ top:4, right:4, left:-18, bottom:16 }}>
-          <XAxis dataKey="name" tick={{ fontSize:8, fill:MUTED }} interval={0} />
-          <YAxis domain={[0,100]} tick={{ fontSize:8, fill:MUTED }} tickCount={3} />
-          <Bar dataKey="value" fill="#60A5FA" radius={[3,3,0,0]} fillOpacity={0.85} />
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Input Visualization (%)</p>
+      <ResponsiveContainer width="100%" height={options.length * 34 + 24}>
+        <BarChart data={data} layout="vertical" barSize={20} margin={{ top:0, right:44, left:0, bottom:4 }}>
+          <XAxis type="number" domain={[0, 100]} tick={{ fontSize:8, fill:MUTED }} tickCount={6} axisLine={false} tickLine={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize:9.5, fill:TEXT }} width={100} axisLine={false} tickLine={false} />
+          <Bar dataKey="value" radius={[0,4,4,0]}>
+            {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.82} />)}
+            <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} formatter={(v: number) => `${v}%`} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -555,22 +562,22 @@ export default function COBIT2019Page() {
                 <Section badge="DF1" title="Enterprise Strategy" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของแต่ละ strategy archetype (1=น้อย, 5=มาก)</div>
                   {DF1_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df1[i]} min={1} max={5} step={1} onChange={v=>updateDf("df1",i,v)}/>)}
-                  <DFInputChart options={DF1_OPTS} values={df.df1} max={5} shortLabels={["Growth","Innovation","Cost","Stability"]}/>
+                  <DFInputChart options={DF1_OPTS} values={df.df1} max={5}/>
                 </Section>
                 <Section badge="DF2" title="Enterprise Goals">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของ enterprise goals (1=น้อย, 5=มาก)</div>
                   {EG_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df2[i]} min={1} max={5} step={1} onChange={v=>updateDf("df2",i,v)}/>)}
-                  <DFInputChart options={EG_OPTS} values={df.df2} max={5} shortLabels={EG_OPTS.map((_,i)=>`EG${String(i+1).padStart(2,"0")}`)}/>
+                  <DFInputChart options={EG_OPTS} values={df.df2} max={5}/>
                 </Section>
                 <Section badge="DF3" title="Risk Profile">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุระดับ impact ของแต่ละ risk scenario (1=น้อย, 5=มาก)</div>
                   {DF3_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df3[i]} min={1} max={5} step={1} onChange={v=>updateDf("df3",i,v)}/>)}
-                  <DFInputChart options={DF3_OPTS} values={df.df3} max={5} shortLabels={DF3_OPTS.map((_,i)=>`R${i+1}`)}/>
+                  <DFInputChart options={DF3_OPTS} values={df.df3} max={5}/>
                 </Section>
                 <Section badge="DF4" title="I&T-Related Issues">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุปัญหาที่เกิดขึ้น: — = ไม่มี, L = น้อย, M = ปานกลาง, H = มาก</div>
                   <IssueInputs options={DF4_OPTS} values={df.df4} onChange={(i,v)=>updateDf("df4",i,v)}/>
-                  <DFInputChart options={DF4_OPTS} values={df.df4} max={3} shortLabels={DF4_OPTS.map((_,i)=>`I${i+1}`)}/>
+                  <DFInputChart options={DF4_OPTS} values={df.df4} max={3}/>
                 </Section>
                 {/* Next button */}
                 <button onClick={()=>setStep(1)}
