@@ -358,18 +358,49 @@ const DF_BAR_COLORS = [
   "#5BC4B4","#A06BC4","#C49E6B","#6BC48C",
 ]
 
-function DFInputChart({ options, values, max=5 }: { options:string[]; values:number[]; max?:number }) {
-  const data = options.map((opt,i) => ({ name: opt, value: values[i], color: DF_BAR_COLORS[i % DF_BAR_COLORS.length] }))
-  const labelW = Math.max(...options.map(o => o.length)) > 20 ? 160 : 130
+function DFLegend() {
+  return (
+    <div className="flex items-center gap-3 mb-2">
+      <span className="flex items-center gap-1 text-[9px]" style={{ color:MUTED }}>
+        <span className="inline-block w-8 h-2.5 rounded-sm" style={{ background:"rgba(255,255,255,0.18)" }}/>
+        Baseline
+      </span>
+      <span className="flex items-center gap-1 text-[9px]" style={{ color:MUTED }}>
+        <span className="inline-block w-8 h-2.5 rounded-sm" style={{ background:TEAL, opacity:0.85 }}/>
+        Your Input
+      </span>
+    </div>
+  )
+}
+
+function DFInputChart({ options, values, baseline, max=5 }: { options:string[]; values:number[]; baseline:number[]; max?:number }) {
+  const data = options.map((opt,i) => ({
+    name: opt,
+    value: values[i],
+    baseline: baseline[i],
+    color: DF_BAR_COLORS[i % DF_BAR_COLORS.length],
+  }))
+  const labelW = Math.max(...options.map(o => o.length)) > 22 ? 165 : 130
   return (
     <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Input Visualization</p>
-      <ResponsiveContainer width="100%" height={options.length * 34 + 24}>
-        <BarChart data={data} layout="vertical" barSize={20} margin={{ top:0, right:36, left:0, bottom:4 }}>
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization</p>
+      <DFLegend/>
+      <ResponsiveContainer width="100%" height={options.length * 46 + 28}>
+        <BarChart data={data} layout="vertical" barGap={3} barCategoryGap="30%" margin={{ top:0, right:44, left:0, bottom:4 }}>
           <XAxis type="number" domain={[0, max]} tick={{ fontSize:8, fill:MUTED }} tickCount={max+1} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize:9.5, fill:TEXT }} width={labelW} axisLine={false} tickLine={false} />
-          <Bar dataKey="value" radius={[0,4,4,0]}>
-            {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.82} />)}
+          <Tooltip
+            contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:11 }}
+            labelStyle={{ color:TEXT }}
+            formatter={(v:number, name:string) => [v, name==="value" ? "Your Input" : "Baseline"]}
+          />
+          {/* Baseline bar — grey, thin */}
+          <Bar dataKey="baseline" barSize={8} fill="rgba(255,255,255,0.18)" radius={[0,3,3,0]}>
+            <LabelList dataKey="baseline" position="right" style={{ fill:MUTED, fontSize:9 }} />
+          </Bar>
+          {/* User input bar — colored, thick */}
+          <Bar dataKey="value" barSize={20} radius={[0,4,4,0]}>
+            {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.85} />)}
             <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} />
           </Bar>
         </BarChart>
@@ -378,18 +409,32 @@ function DFInputChart({ options, values, max=5 }: { options:string[]; values:num
   )
 }
 
-function DFPercentChart({ options, values }: { options:string[]; values:number[] }) {
-  const data = options.map((opt,i) => ({ name: opt, value: Math.round(values[i]*100), color: DF_BAR_COLORS[i % DF_BAR_COLORS.length] }))
+function DFPercentChart({ options, values, baseline }: { options:string[]; values:number[]; baseline:number[] }) {
+  const data = options.map((opt,i) => ({
+    name: opt,
+    value: Math.round(values[i]*100),
+    baseline: Math.round(baseline[i]*100),
+    color: DF_BAR_COLORS[i % DF_BAR_COLORS.length],
+  }))
   return (
     <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Input Visualization (%)</p>
-      <ResponsiveContainer width="100%" height={options.length * 34 + 24}>
-        <BarChart data={data} layout="vertical" barSize={20} margin={{ top:0, right:44, left:0, bottom:4 }}>
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization (%)</p>
+      <DFLegend/>
+      <ResponsiveContainer width="100%" height={options.length * 46 + 28}>
+        <BarChart data={data} layout="vertical" barGap={3} barCategoryGap="30%" margin={{ top:0, right:52, left:0, bottom:4 }}>
           <XAxis type="number" domain={[0, 100]} tick={{ fontSize:8, fill:MUTED }} tickCount={6} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize:9.5, fill:TEXT }} width={100} axisLine={false} tickLine={false} />
-          <Bar dataKey="value" radius={[0,4,4,0]}>
-            {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.82} />)}
-            <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} formatter={(v: number) => `${v}%`} />
+          <Tooltip
+            contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:11 }}
+            labelStyle={{ color:TEXT }}
+            formatter={(v:number, name:string) => [`${v}%`, name==="value" ? "Your Input" : "Baseline"]}
+          />
+          <Bar dataKey="baseline" barSize={8} fill="rgba(255,255,255,0.18)" radius={[0,3,3,0]}>
+            <LabelList dataKey="baseline" position="right" style={{ fill:MUTED, fontSize:9 }} formatter={(v:number) => `${v}%`} />
+          </Bar>
+          <Bar dataKey="value" barSize={20} radius={[0,4,4,0]}>
+            {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.85} />)}
+            <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} formatter={(v:number) => `${v}%`} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -562,22 +607,22 @@ export default function COBIT2019Page() {
                 <Section badge="DF1" title="Enterprise Strategy" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของแต่ละ strategy archetype (1=น้อย, 5=มาก)</div>
                   {DF1_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df1[i]} min={1} max={5} step={1} onChange={v=>updateDf("df1",i,v)}/>)}
-                  <DFInputChart options={DF1_OPTS} values={df.df1} max={5}/>
+                  <DFInputChart options={DF1_OPTS} values={df.df1} baseline={DF1_BASE} max={5}/>
                 </Section>
                 <Section badge="DF2" title="Enterprise Goals">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุความสำคัญของ enterprise goals (1=น้อย, 5=มาก)</div>
                   {EG_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df2[i]} min={1} max={5} step={1} onChange={v=>updateDf("df2",i,v)}/>)}
-                  <DFInputChart options={EG_OPTS} values={df.df2} max={5}/>
+                  <DFInputChart options={EG_OPTS} values={df.df2} baseline={EG_BASE} max={5}/>
                 </Section>
                 <Section badge="DF3" title="Risk Profile">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุระดับ impact ของแต่ละ risk scenario (1=น้อย, 5=มาก)</div>
                   {DF3_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df3[i]} min={1} max={5} step={1} onChange={v=>updateDf("df3",i,v)}/>)}
-                  <DFInputChart options={DF3_OPTS} values={df.df3} max={5}/>
+                  <DFInputChart options={DF3_OPTS} values={df.df3} baseline={DF3_BASE} max={5}/>
                 </Section>
                 <Section badge="DF4" title="I&T-Related Issues">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระบุปัญหาที่เกิดขึ้น: — = ไม่มี, L = น้อย, M = ปานกลาง, H = มาก</div>
                   <IssueInputs options={DF4_OPTS} values={df.df4} onChange={(i,v)=>updateDf("df4",i,v)}/>
-                  <DFInputChart options={DF4_OPTS} values={df.df4} max={3}/>
+                  <DFInputChart options={DF4_OPTS} values={df.df4} baseline={DF4_BASE} max={3}/>
                 </Section>
                 {/* Next button */}
                 <button onClick={()=>setStep(1)}
@@ -681,32 +726,32 @@ export default function COBIT2019Page() {
                 <Section badge="DF5" title="Threat Landscape" defaultOpen>
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>สัดส่วน threat level (รวม = 100%)</div>
                   <PercentInputs options={DF5_OPTS} values={df.df5} onChange={(i,v)=>updateDf("df5",i,v)}/>
-                  <DFPercentChart options={DF5_OPTS} values={df.df5}/>
+                  <DFPercentChart options={DF5_OPTS} values={df.df5} baseline={DF5_BASE}/>
                 </Section>
                 <Section badge="DF6" title="Compliance Requirements">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>ระดับข้อกำหนดด้าน compliance (รวม = 100%)</div>
                   <PercentInputs options={DF6_OPTS} values={df.df6} onChange={(i,v)=>updateDf("df6",i,v)}/>
-                  <DFPercentChart options={DF6_OPTS} values={df.df6}/>
+                  <DFPercentChart options={DF6_OPTS} values={df.df6} baseline={DF6_BASE}/>
                 </Section>
                 <Section badge="DF7" title="Role of IT">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>บทบาทของ IT ในองค์กร (1=น้อย, 5=มาก)</div>
                   {DF7_OPTS.map((opt,i)=><SliderInput key={i} label={opt} value={df.df7[i]} min={1} max={5} step={1} onChange={v=>updateDf("df7",i,v)}/>)}
-                  <DFInputChart options={DF7_OPTS} values={df.df7} max={5}/>
+                  <DFInputChart options={DF7_OPTS} values={df.df7} baseline={DF7_BASE} max={5}/>
                 </Section>
                 <Section badge="DF8" title="Sourcing Model for IT">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>สัดส่วน sourcing model (รวม = 100%)</div>
                   <PercentInputs options={DF8_OPTS} values={df.df8} onChange={(i,v)=>updateDf("df8",i,v)}/>
-                  <DFPercentChart options={DF8_OPTS} values={df.df8}/>
+                  <DFPercentChart options={DF8_OPTS} values={df.df8} baseline={DF8_BASE}/>
                 </Section>
                 <Section badge="DF9" title="IT Implementation Methods">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>วิธีการ implement IT (รวม = 100%)</div>
                   <PercentInputs options={DF9_OPTS} values={df.df9} onChange={(i,v)=>updateDf("df9",i,v)}/>
-                  <DFPercentChart options={DF9_OPTS} values={df.df9}/>
+                  <DFPercentChart options={DF9_OPTS} values={df.df9} baseline={DF9_BASE}/>
                 </Section>
                 <Section badge="DF10" title="Technology Adoption Strategy">
                   <div className="text-[10px] mb-2" style={{ color:MUTED }}>กลยุทธ์การ adopt เทคโนโลยีใหม่ (รวม = 100%)</div>
                   <PercentInputs options={DF10_OPTS} values={df.df10} onChange={(i,v)=>updateDf("df10",i,v)}/>
-                  <DFPercentChart options={DF10_OPTS} values={df.df10}/>
+                  <DFPercentChart options={DF10_OPTS} values={df.df10} baseline={DF10_BASE}/>
                 </Section>
                 <div className="flex gap-2">
                   <button onClick={()=>setStep(1)} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-medium" style={{ background:"rgba(255,255,255,0.06)", color:MUTED, border:`1px solid ${BORDER}` }}>
