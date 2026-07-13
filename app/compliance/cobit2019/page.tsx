@@ -654,11 +654,11 @@ function DFTabContent({ dfNum, title, subtitle, children, dfScores, totalPct }: 
           <div className="flex-1 min-w-0 px-4 py-3">
             {children}
           </div>
-          {/* Domain chart */}
-          <div className="w-72 shrink-0 px-4 py-3" style={{ borderLeft:`1px solid ${BORDER}` }}>
+          {/* Right: full 40-objective RI bar chart */}
+          <div className="w-[420px] shrink-0 px-3 py-3" style={{ borderLeft:`1px solid ${BORDER}` }}>
             <p className="text-[10px] font-bold" style={{ color:TEAL }}>Contribution — DF{dfNum}</p>
-            <p className="text-[8.5px] mb-2" style={{ color:MUTED }}>Avg Relative Importance ต่อ domain</p>
-            <DFDomainChart scores={dfScores} />
+            <p className="text-[8.5px] mb-2" style={{ color:MUTED }}>RI ต่อ 40 Governance Objectives (เรียงมากไปน้อย)</p>
+            <ObjHorizBar scores={[...dfScores].sort((a,b)=>b.ri-a.ri)} />
           </div>
         </div>
 
