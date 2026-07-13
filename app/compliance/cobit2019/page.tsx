@@ -382,64 +382,93 @@ function ObjRadar({ scores }: { scores: FullScore[] }) {
   )
 }
 
-function DFOutputPanel({ scores, dfNum }: { scores: DFScore[]; dfNum: number }) {
-  const sorted = [...scores].sort((a,b)=>b.ri-a.ri)
-  const [view, setView] = useState<"table"|"chart">("table")
-  return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ borderLeft:`1px solid ${BORDER}` }}>
-      {/* Header */}
-      <div className="shrink-0 px-3 py-2.5 flex items-center justify-between" style={{ borderBottom:`1px solid ${BORDER}`, background:PANEL }}>
-        <div>
-          <p className="text-[11px] font-bold" style={{ color:TEAL }}>Contribution from DF{dfNum}</p>
-          <p className="text-[9px]" style={{ color:MUTED }}>RI ต่อ 40 Governance Objectives</p>
-        </div>
-        <div className="flex rounded overflow-hidden" style={{ border:`1px solid ${BORDER}` }}>
-          {(["table","chart"] as const).map(v=>(
-            <button key={v} onClick={()=>setView(v)}
-              className="px-2.5 py-1 text-[9px] font-semibold transition-all"
-              style={{ background:view===v?TEAL:"transparent", color:view===v?BG:MUTED }}>
-              {v==="table"?"☰":"📊"}
-            </button>
-          ))}
-        </div>
-      </div>
+// ─── DF Domain Summary Chart (avg RI per domain, 5 bars) ─────────────────────
 
-      <div className="flex-1 overflow-y-auto px-2 py-2">
-        {view==="table" && (
-          <>
-            {/* Table header */}
-            <div className="flex items-center gap-1 px-2 py-1 mb-1 rounded" style={{ background:"rgba(255,255,255,0.03)" }}>
-              <span className="w-[30px] shrink-0"/>
-              <span className="w-[44px] shrink-0 text-[8px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>ID</span>
-              <span className="flex-1 min-w-0 text-[8px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Objective</span>
-              <span className="w-9 text-right shrink-0 text-[8px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Score</span>
-              <span className="w-9 text-right shrink-0 text-[8px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Base</span>
-              <span className="w-9 text-right shrink-0 text-[8px] font-semibold uppercase tracking-wider" style={{ color:TEAL }}>RI%</span>
+function DFDomainChart({ scores }: { scores: DFScore[] }) {
+  const domains = ["EDM","APO","BAI","DSS","MEA"]
+  const data = domains.map(d => {
+    const ds = scores.filter(s => s.domain === d)
+    const avg = ds.length > 0 ? Math.round(ds.reduce((a,s)=>a+s.ri,0)/ds.length) : 0
+    return { domain: d, ri: avg }
+  })
+  return (
+    <ResponsiveContainer width="100%" height={165}>
+      <BarChart data={data} layout="vertical" barSize={16}
+        margin={{ top:4, right:52, left:10, bottom:4 }}>
+        <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.04)" />
+        <XAxis type="number" domain={[-100,100]}
+          tick={{ fontSize:7, fill:MUTED }} tickLine={false}
+          axisLine={{ stroke:"rgba(255,255,255,0.08)" }} />
+        <YAxis type="category" dataKey="domain" width={38} tickLine={false} axisLine={false}
+          tick={(props: {x:number;y:number;payload:{value:string}}) => {
+            const { x, y, payload } = props
+            const c = DOMAIN_COLORS[payload.value] || TEXT
+            return (
+              <g transform={`translate(${x},${y})`}>
+                <text x={-4} y={0} dy={4} textAnchor="end"
+                  style={{ fontSize:11, fontWeight:800, fill:c }}>{payload.value}</text>
+              </g>
+            )
+          }}
+        />
+        <ReferenceLine x={0} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
+        <Tooltip
+          contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:10 }}
+          formatter={(v:number) => [v>0?`+${v}`:v, "Avg RI"]}
+          labelStyle={{ color:TEXT }}
+        />
+        <Bar dataKey="ri" radius={[0,3,3,0]}>
+          {data.map((d,i) => <Cell key={i} fill={DOMAIN_COLORS[d.domain] || TEAL} />)}
+          <LabelList dataKey="ri" position="right"
+            style={{ fontSize:9, fontWeight:700, fill:TEXT }}
+            formatter={(v:number) => v > 0 ? `+${v}` : String(v)} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// ─── Domain Objectives Card ────────────────────────────────────────────────────
+
+function DomainObjectivesCard({ domain, scores }: { domain: string; scores: DFScore[] }) {
+  const color = DOMAIN_COLORS[domain] || TEAL
+  const domainScores = [...scores.filter(s => s.domain === domain)].sort((a,b)=>b.ri-a.ri)
+  const avgRI = domainScores.length > 0
+    ? Math.round(domainScores.reduce((a,s)=>a+s.ri,0)/domainScores.length) : 0
+  const riColor = (ri:number) => ri > 0 ? TEAL : ri < 0 ? "#F87171" : MUTED
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background:CARD, border:`1px solid ${color}25` }}>
+      {/* Header */}
+      <div className="px-3 py-2 flex items-center justify-between"
+        style={{ background:`${color}18`, borderBottom:`1px solid ${color}20` }}>
+        <span className="text-[11px] font-black" style={{ color }}>{domain}</span>
+        <span className="text-[8.5px] font-bold" style={{ color:riColor(avgRI) }}>
+          avg {avgRI > 0 ? "+" : ""}{avgRI}
+        </span>
+      </div>
+      {/* Objectives */}
+      <div>
+        {domainScores.map((s, i) => (
+          <div key={s.id} className="px-2 py-1.5"
+            style={{ borderTop: i > 0 ? `1px solid rgba(255,255,255,0.04)` : undefined }}>
+            <div className="flex items-start gap-1.5 mb-1">
+              <span className="text-[8.5px] font-bold shrink-0 mt-0.5" style={{ color:TEXT }}>{s.id}</span>
+              <span className="flex-1 min-w-0 text-[7px] leading-tight" style={{ color:MUTED }}
+                title={s.name}>{s.name}</span>
+              <span className="text-[9px] font-black shrink-0 w-6 text-right"
+                style={{ color:riColor(s.ri) }}>{s.ri > 0 ? "+" : ""}{s.ri}</span>
             </div>
-            <div className="space-y-0.5">
-              {sorted.map(s => {
-                const riColor = s.ri>0?TEAL:s.ri<0?"#F87171":MUTED
-                return (
-                  <div key={s.id} className="flex items-center gap-1 px-2 py-1.5 rounded" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
-                    <DomainBadge domain={s.domain}/>
-                    <span className="w-[44px] shrink-0 text-[9px] font-bold" style={{ color:TEXT }}>{s.id}</span>
-                    <span className="flex-1 min-w-0 text-[8.5px] truncate" style={{ color:MUTED }} title={s.name}>{s.name}</span>
-                    <span className="w-9 text-right shrink-0 text-[8.5px] font-mono" style={{ color:MUTED }}>{s.userScore.toFixed(1)}</span>
-                    <span className="w-9 text-right shrink-0 text-[8.5px] font-mono" style={{ color:"rgba(255,255,255,0.2)" }}>{s.baselineScore.toFixed(1)}</span>
-                    <span className="w-9 text-right shrink-0 text-[10px] font-black" style={{ color:riColor }}>
-                      {s.ri>0?"+":""}{s.ri}
-                    </span>
-                  </div>
-                )
-              })}
+            <div className="h-0.5 rounded-full overflow-hidden" style={{ background:"rgba(255,255,255,0.07)" }}>
+              {s.ri !== 0 && (
+                <div style={{
+                  width:`${Math.abs(s.ri)}%`, height:"100%", background:riColor(s.ri),
+                  marginLeft: s.ri < 0 ? `${100-Math.abs(s.ri)}%` : "0%",
+                }}/>
+              )}
             </div>
-          </>
-        )}
-        {view==="chart" && (
-          <div className="overflow-x-auto">
-            <ObjHorizBar scores={sorted}/>
           </div>
-        )}
+        ))}
       </div>
     </div>
   )
@@ -598,32 +627,51 @@ function DFTabContent({ dfNum, title, subtitle, children, dfScores, totalPct }: 
   dfScores:DFScore[]; totalPct?:number;
 }) {
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Left: inputs */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
-        {/* DF header */}
-        <div className="px-4 py-3 shrink-0" style={{ borderBottom:`1px solid ${BORDER}`, background:PANEL }}>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black px-2 py-0.5 rounded shrink-0"
-              style={{ background:TAB_COLORS[dfNum-1], color:"#fff" }}>DF{dfNum}</span>
-            <div>
-              <p className="text-[13px] font-bold leading-tight" style={{ color:TEXT }}>{title}</p>
-              <p className="text-[10px]" style={{ color:MUTED }}>{subtitle}</p>
-            </div>
-            {totalPct !== undefined && Math.abs(totalPct-100) > 2 && (
-              <span className="text-[10px] px-2 py-0.5 rounded ml-auto" style={{ color:"#F87171", background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.2)" }}>
-                รวม {totalPct}% (ต้องรวม 100%)
-              </span>
-            )}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* DF header */}
+      <div className="shrink-0 px-4 py-3" style={{ borderBottom:`1px solid ${BORDER}`, background:PANEL }}>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded shrink-0"
+            style={{ background:TAB_COLORS[dfNum-1], color:"#fff" }}>DF{dfNum}</span>
+          <div>
+            <p className="text-[13px] font-bold leading-tight" style={{ color:TEXT }}>{title}</p>
+            <p className="text-[10px]" style={{ color:MUTED }}>{subtitle}</p>
           </div>
-        </div>
-        <div className="px-4 pb-4">
-          {children}
+          {totalPct !== undefined && Math.abs(totalPct-100) > 2 && (
+            <span className="text-[10px] px-2 py-0.5 rounded ml-auto"
+              style={{ color:"#F87171", background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.2)" }}>
+              รวม {totalPct}% (ต้องรวม 100%)
+            </span>
+          )}
         </div>
       </div>
-      {/* Right: per-DF output */}
-      <div className="w-[420px] shrink-0 overflow-hidden flex flex-col">
-        <DFOutputPanel scores={dfScores} dfNum={dfNum}/>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Top row: inputs (left) + domain RI chart (right) */}
+        <div className="flex" style={{ borderBottom:`1px solid ${BORDER}` }}>
+          {/* Inputs */}
+          <div className="flex-1 min-w-0 px-4 py-3">
+            {children}
+          </div>
+          {/* Domain chart */}
+          <div className="w-72 shrink-0 px-4 py-3" style={{ borderLeft:`1px solid ${BORDER}` }}>
+            <p className="text-[10px] font-bold" style={{ color:TEAL }}>Contribution — DF{dfNum}</p>
+            <p className="text-[8.5px] mb-2" style={{ color:MUTED }}>Avg Relative Importance ต่อ domain</p>
+            <DFDomainChart scores={dfScores} />
+          </div>
+        </div>
+
+        {/* Bottom: 5 domain objective cards */}
+        <div className="px-4 py-4">
+          <p className="text-[9px] font-semibold uppercase tracking-wider mb-3"
+            style={{ color:MUTED }}>RI ต่อ 40 Governance Objectives — DF{dfNum}</p>
+          <div className="grid grid-cols-5 gap-3">
+            {["EDM","APO","BAI","DSS","MEA"].map(domain => (
+              <DomainObjectivesCard key={domain} domain={domain} scores={dfScores} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
