@@ -61,10 +61,10 @@ const DF1_MAP = [[1,1,1.5,1.5],[1.5,1,2,3.5],[1,1,1,2],[1.5,1,4,1],[1.5,1.5,1,2]
 const DF1_OPTS = ["Growth / Acquisition","Innovation / Differentiation","Cost Leadership","Client Service / Stability"]
 const DF1_BASE = [3,3,3,3]
 const DF1_DESC = [
-  "Organisasi memiliki fokus pada pertumbuhan (pendapatan)",
-  "Perusahaan memiliki fokus pada penawaran produk dan layanan yang berbeda dan/atau inovatif",
-  "Perusahaan memiliki fokus pada minimalisasi biaya jangka pendek",
-  "Perusahaan memiliki fokus pada penyediaan layanan yang stabil dan berorientasi pelanggan",
+  "องค์กรมุ่งเน้นการเติบโตด้านรายได้และการขยายตลาด",
+  "องค์กรมุ่งเน้นการนำเสนอผลิตภัณฑ์/บริการที่แตกต่างและสร้างสรรค์",
+  "องค์กรมุ่งเน้นการลดต้นทุนระยะสั้นให้ต่ำที่สุด",
+  "องค์กรมุ่งเน้นการให้บริการลูกค้าที่มั่นคงและเสถียรภาพ",
 ]
 
 const DF3_MAP = [[3,2,3,0,0,0,2,0,0,0,0,0,3,2,0,0,2,2,2],[3,2,0,0,2,0,0,0,0,0,0,0,1,0,0,0,3,1,3],[2,2,0,0,0,0,0,0,0,1,2,0,3,3,0,0,0,2,3],[3,0,4,3,2,0,0,0,0,0,0,2,1,0,2,0,0,2,3],[3,1,3,0,0,0,2,0,0,1,0,1,3,3,0,0,0,2,2],[2,3,2,0,2,2,4,2,0,2,3,3,3,0,0,0,3,2,3],[2,0,0,0,3,0,0,2,1,0,1,2,0,0,0,0,2,2,1],[2,0,0,2,2,0,2,4,2,0,2,4,0,0,0,0,3,0,3],[0,4,0,0,0,0,0,3,0,0,2,0,0,0,0,0,3,0,3],[2,3,0,0,2,0,0,0,0,0,0,0,0,0,0,0,2,0,1],[0,0,4,3,0,0,0,0,1,0,0,0,0,0,0,0,0,0,3],[0,0,3,3,3,0,0,0,0,3,0,0,0,0,2,0,0,2,3],[0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0],[0,0,0,0,0,2,3,0,0,0,0,0,0,0,0,0,3,2,0],[0,0,0,0,0,2,0,0,0,0,0,3,0,0,0,0,0,0,2],[0,0,0,3,3,0,0,0,0,0,3,3,0,0,0,0,0,0,3],[0,0,0,0,0,0,3,0,0,3,4,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0,3],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3],[2,4,0,0,2,0,3,4,0,0,0,0,0,0,0,0,3,0,1],[0,4,0,0,2,0,0,3,0,0,0,0,0,0,0,0,3,0,0],[0,4,0,0,0,0,0,4,0,2,0,0,0,0,0,0,3,0,0],[0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,4,0,3,0,0,0,2,0,0,0,0,0,0,0,0,3,0,0],[0,4,0,0,0,0,0,4,0,2,0,0,0,0,0,0,0,0,0],[0,4,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,3,0,3],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,4,0,0,2,0,0,0,0,0,0,0,0,0,0],[0,4,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,4,0,0,0,0,0,3,0,0,0,0,0,0,0],[0,0,0,0,0,3,0,0,2,2,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,4,0,0,4,0,0,0,0,0,2,0,0,0,0],[0,0,0,0,0,3,4,0,0,2,4,2,0,0,0,0,0,0,0],[0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,3],[0,0,0,2,0,0,0,0,0,0,0,0,3,3,0,0,0,2,2],[0,0,0,0,0,0,0,0,0,0,3,0,3,3,0,0,0,2,0],[0,0,0,0,0,0,0,3,0,0,0,0,3,3,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,0]]
@@ -72,105 +72,105 @@ const DF3_OPTS = ["IT investment decision making","Program & project lifecycle",
 // Baseline = 9 = 3 (Impact) × 3 (Likelihood) — matches Excel
 const DF3_BASE = [9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]
 const DF3_DESC = [
-  "Pembuatan keputusan investasi TI, penentuan portofolio & penganggaran",
-  "Pengelolaan siklus hidup program & proyek TI",
-  "Biaya & pengawasan TI yang tidak terkendali",
-  "Keahlian, keterampilan & perilaku sumber daya TI",
-  "Arsitektur organisasi/TI yang tidak selaras",
-  "Insiden infrastruktur operasional TI",
-  "Tindakan yang tidak sah oleh pengguna internal",
-  "Masalah adopsi/penggunaan perangkat lunak",
-  "Insiden perangkat keras",
-  "Kegagalan perangkat lunak",
-  "Logical attacks (hacking, malware, dst.)",
-  "Insiden pihak ketiga/pemasok",
-  "Ketidaksesuaian dengan peraturan (Noncompliance)",
-  "Masalah geopolitik yang mempengaruhi operasional",
-  "Tindakan industri / mogok kerja",
-  "Kejadian alam (bencana alam)",
-  "Inovasi berbasis teknologi yang disruptif",
-  "Dampak lingkungan hidup",
-  "Pengelolaan data & informasi yang buruk",
+  "การตัดสินใจลงทุน IT การกำหนดพอร์ตโฟลิโอและงบประมาณ",
+  "การจัดการวงจรชีวิตโครงการและโปรแกรม IT",
+  "ต้นทุนและการกำกับดูแล IT ที่ไม่สามารถควบคุมได้",
+  "ความเชี่ยวชาญ ทักษะ และพฤติกรรมของบุคลากร IT",
+  "สถาปัตยกรรมองค์กร/IT ที่ไม่สอดคล้องกับธุรกิจ",
+  "เหตุการณ์ด้านโครงสร้างพื้นฐาน IT ที่กระทบการดำเนินงาน",
+  "การกระทำที่ไม่ได้รับอนุญาตจากผู้ใช้ภายใน",
+  "ปัญหาการนำซอฟต์แวร์ไปใช้หรือการใช้งาน",
+  "เหตุการณ์ด้านฮาร์ดแวร์ที่กระทบระบบ",
+  "ความล้มเหลวของซอฟต์แวร์ที่กระทบบริการ",
+  "การโจมตีเชิงตรรกะ (hacking, malware ฯลฯ)",
+  "เหตุการณ์จากบุคคลที่สาม/ผู้จัดหา",
+  "การไม่ปฏิบัติตามกฎระเบียบและข้อบังคับ",
+  "ปัญหาทางภูมิรัฐศาสตร์ที่ส่งผลต่อการดำเนินงาน",
+  "การนัดหยุดงานหรือการเคลื่อนไหวด้านแรงงาน",
+  "ภัยธรรมชาติและเหตุสุดวิสัย",
+  "นวัตกรรมเทคโนโลยีที่สร้างการเปลี่ยนแปลงครั้งใหญ่",
+  "ผลกระทบและความเสี่ยงด้านสิ่งแวดล้อม",
+  "การจัดการข้อมูลและสารสนเทศที่ไม่มีประสิทธิภาพ",
 ]
 
 const DF4_MAP = [[3,3,1,1,2,2,2,1,1,1,3,3.5,1,1,1,1,2,3,1.5,1],[2.5,3,1,1,1,1,2,1,1,1,2.5,3,1,1,2,1,2,3,1,1],[1,1,2,1,2,2,1,1,0.5,1,1,1,1,1,1,1,2,1,2,1],[1,1,1,1,1,1,3.5,2,2,2.5,3,3.5,1,1,1,1,1,2,1,1],[1,1,1,1,1,1,1,1,1,1,3,1,1,1,1,2,1,2,1,1],[2,1,2,1,1,1,2,1,1,1,2,2,1,1,2,3,2,2,1,1],[1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5],[1,1.5,1,2,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1],[1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,2,1,1,1,2],[3,3,1,1.5,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1],[3.5,2,1,1.5,1,1,2,1,1,1,2,3.5,1,1,1,1,1,2,1,1],[1.5,1,1,3,3,1.5,1,1.5,1.5,1,2,1,1,1,1,3,1,1,1,1],[2.5,2,1,2.5,1,1,1,1,1.5,1,2.5,2,1,1,2,2,1.5,1.5,1,1],[2,1.5,2,1,2,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1],[1,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1],[1,1,3,1.5,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1],[1,0.5,2.5,1.5,2,2,1,1,0.5,1,1,1,1,1,1,2,1,1.5,2.5,1],[0,0,3.5,1,2,1.5,1,1,1,1,1,1,1,1,1,1,1,1,2,1],[1,1.5,3,1,2,1,1.5,1.5,1,1,1,1.5,1,1,2,3,1.5,1,2,1],[3,3,1,1,1,1,1,1,1,1,2,1,1,1,2,2,1,2,1,2],[1,1,1,1,1,1,1,1,1,2,1,1,1,1,2,2,1,2,1,2],[1,1,1,1,1,1,1,1,1,2,1,1,1,1,2,2,1,2,1,2],[1,1,2,1,1,1,1,1,2,1,1,1,1,1,1,1,2,1,1,1],[1,1,1,1,1,1,1,1,1,2,2,1,1,1,2,2,1,3,1,2],[1,1,2,1,1,1,1,1,2,2,1,1,1,1,1,1,2,1,1,1],[1,1,2,1,1,1,1,1,2,1,1,1,1,1,1,1,2,1,1,1],[1,1,1,2.5,1,1,1,2,1,1,1,1,1,1,2,3,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[2,2,1,1.5,1,1,1,1,1,2,2,1,1,1,2,2,1,2,1,2],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[2,2,2,1,2,1,1,1,2,1,2,1,2,1,1,1,2,1,1,1],[2,2,2,1,1,1,1,1,2,1,1,1,1,1,1,1,2,1,1,1],[1,1,2,1,1,1,1,1,2,1,2,1,1,1,2,1,2,1,1,1],[1,1,3.5,1,2,1.5,1,1,1,1,1,1,1,1,1,1,1,1,2,1],[1,1,1,1,1,1.5,1,1,1,1,1,1,1,1,1,2.5,2,2,2,1],[1,1,2,2,2.5,2.5,1,1,1,1,1,1,2,1,1,2,1,1,2,1],[1,1,1,1,2,2,1,1,1,1,1,1,3,1,1,1,1,1,2.5,1],[1,1,1,1,2,1.5,1,1,1,1,1,1,2,2,1,1,1,1,2,1],[1,1,1,1,2,2,1,1,1,1,1,1,2,2,1,1,1,1,2,1]]
 const DF4_OPTS = ["A. Frustration between IT entities","B. Frustration business depts & IT","C. Significant I&T incidents","D. Service delivery problems (outsourcer)","E. Failures to meet regulatory requirements","F. Regular audit findings (poor IT)","G. Hidden/rogue IT spending","H. Duplicate initiatives / wasted resources","I. Insufficient IT resources/skills","J. IT projects failing to meet needs","K. Reluctance by executives to engage with IT","L. Complex IT operating model","M. Excessively high cost of IT","N. Obstructed new initiatives (IT architecture)","O. Business/technical knowledge gap","P. Data quality & integration issues","Q. High end-user computing, lack of oversight","R. Business depts implementing own solutions","S. Noncompliance with privacy regulations","T. Inability to exploit new technologies"]
 const DF4_BASE = [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 const DF4_DESC = [
-  "Kebingungan pada setiap entitas TI yang ada di organisasi karena dipandang kompleks",
-  "Kebingungan pada unit bisnis dan unit TI karena inisiatif yang gagal atau dipandang gagal",
-  "Insiden terkait TI yang signifikan (kehilangan data, pelanggaran keamanan, dst.)",
-  "Masalah penyediaan layanan TI oleh pihak ketiga atau outsourcer",
-  "Kegagalan untuk memenuhi persyaratan regulasi atau kontrak terkait TI",
-  "Temuan audit rutin atau laporan penilaian tentang rendahnya kinerja TI",
-  "Pengeluaran TI yang tersembunyi dan menipu (rogue IT spending)",
-  "Duplikasi atau tumpang tindih antar berbagai inisiatif atau sumber daya TI",
-  "Sumber daya TI yang tidak mencukupi, staf dengan keterampilan yang tidak memadai",
-  "Perubahan atau proyek yang didukung TI sering gagal memenuhi kebutuhan bisnis",
-  "Keengganan pejabat atau manajemen senior untuk terlibat dengan TI",
-  "Model operasi TI yang kompleks dan/atau mekanisme keputusan yang tidak jelas",
-  "Biaya TI yang terlalu tinggi dibandingkan benchmark industri",
-  "Implementasi inisiatif atau inovasi baru yang terhambat karena arsitektur TI",
-  "Kesenjangan antara pengetahuan bisnis dan teknis yang menyulitkan komunikasi",
-  "Masalah umum pada kualitas data dan integrasi data di berbagai sistem",
-  "Komputasi pengguna (end-user) tingkat tinggi, membuat kurangnya pengawasan",
-  "Unit bisnis menerapkan solusi informasinya sendiri dengan sedikit atau tanpa pengawasan TI",
-  "Ketidaktahuan dan/atau ketidakpatuhan terhadap regulasi kerahasiaan data",
-  "Ketidakmampuan untuk memanfaatkan teknologi baru atau berinovasi menggunakan TI",
+  "ความสับสนในหน่วยงาน IT เนื่องจากโครงสร้างที่ซับซ้อนเกินไป",
+  "ความขัดแย้งระหว่างหน่วยธุรกิจและฝ่าย IT เนื่องจากโครงการที่ล้มเหลว",
+  "เหตุการณ์ IT ที่สำคัญ เช่น ข้อมูลสูญหาย หรือถูกเจาะระบบ",
+  "ปัญหาการให้บริการ IT โดยบุคคลที่สาม/outsourcer",
+  "ความล้มเหลวในการปฏิบัติตามข้อกำหนดด้านกฎหมายหรือสัญญา IT",
+  "ผลการตรวจสอบที่แสดงว่าประสิทธิภาพ IT อยู่ในระดับต่ำ",
+  "ค่าใช้จ่าย IT ที่ซ่อนอยู่หรือไม่โปร่งใส (rogue IT spending)",
+  "งานซ้ำซ้อนหรือทับซ้อนกันระหว่างโครงการหรือทรัพยากร IT",
+  "ทรัพยากร IT ไม่เพียงพอ บุคลากรขาดทักษะที่จำเป็น",
+  "โครงการ IT มักไม่สามารถตอบสนองความต้องการทางธุรกิจได้",
+  "ผู้บริหารระดับสูงไม่ยอมมีส่วนร่วมหรือสนใจด้าน IT",
+  "รูปแบบการดำเนินงาน IT ซับซ้อนและกลไกตัดสินใจไม่ชัดเจน",
+  "ค่าใช้จ่าย IT สูงเกินไปเมื่อเทียบกับมาตรฐานอุตสาหกรรม",
+  "โครงการหรือนวัตกรรมใหม่ถูกขัดขวางโดยสถาปัตยกรรม IT",
+  "ช่องว่างระหว่างความรู้ด้านธุรกิจและเทคนิคทำให้สื่อสารยาก",
+  "ปัญหาคุณภาพข้อมูลและการรวมข้อมูลจากหลายระบบ",
+  "ผู้ใช้ปลายทางดำเนินการคอมพิวเตอร์เองโดยขาดการกำกับดูแล",
+  "หน่วยธุรกิจพัฒนาระบบ IT ของตนเองโดยไม่ผ่านฝ่าย IT",
+  "ขาดความรู้หรือไม่ปฏิบัติตามกฎหมายความเป็นส่วนตัวของข้อมูล",
+  "ไม่สามารถใช้ประโยชน์จากเทคโนโลยีใหม่หรือสร้างนวัตกรรมด้วย IT ได้",
 ]
 
 const DF5_MAP = [[3,1],[3,1],[3,1],[1,1],[1,1],[3,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[2,1],[2,1],[3,1],[4,1],[3,1],[2,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[3,1],[2,1],[3,1],[4,1],[1,1],[2,1],[3,1],[1,1],[2,1]]
 const DF5_OPTS = ["High","Normal"]
 const DF5_BASE = [0.33,0.67]
 const DF5_DESC = [
-  "Organisasi beroperasi dalam lingkungan sektornya dengan ancaman yang lebih tinggi dari rata-rata",
-  "Organisasi beroperasi di bawah tingkat ancaman normal yang umum di berbagai sektor",
+  "องค์กรดำเนินงานในสภาพแวดล้อมที่มีระดับภัยคุกคามสูงกว่าค่าเฉลี่ยในอุตสาหกรรม",
+  "องค์กรดำเนินงานภายใต้ระดับภัยคุกคามปกติที่พบทั่วไปในหลายภาคส่วน",
 ]
 
 const DF6_MAP = [[3,2,1],[2,1,1],[3,2,1],[1,1,1],[3,2,1],[3,2,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[4,2,1],[3,2,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[3,2,1],[3,2,1],[3,2,1],[4,3,1],[3,2,1]]
 const DF6_OPTS = ["High","Normal","Low"]
 const DF6_BASE = [0.0,1.0,0.0]
 const DF6_DESC = [
-  "Organisasi tunduk pada persyaratan kepatuhan yang lebih tinggi dari rata-rata (paling sering terkait sektor atau kondisi geopolitik)",
-  "Organisasi tunduk pada serangkaian persyaratan kepatuhan standar yang umum di berbagai sektor",
-  "Organisasi tunduk pada serangkaian minimal persyaratan kepatuhan standar yang lebih rendah dari rata-rata",
+  "องค์กรอยู่ภายใต้ข้อกำหนดการปฏิบัติตามกฎที่เข้มงวดกว่าค่าเฉลี่ย (เช่น กฎเกณฑ์เฉพาะอุตสาหกรรมหรือภูมิรัฐศาสตร์)",
+  "องค์กรอยู่ภายใต้ข้อกำหนดการปฏิบัติตามกฎมาตรฐานที่ใช้กันทั่วไปในหลายภาคส่วน",
+  "องค์กรอยู่ภายใต้ข้อกำหนดการปฏิบัติตามกฎขั้นต่ำน้อยกว่าค่าเฉลี่ย",
 ]
 
 const DF7_MAP = [[1,2,1.5,4],[1,1,2,4],[1,1,1.5,3],[1,2,1.5,3],[1,1,1,3],[1,2,2,3.5],[1,1,2,3.5],[1,1,2.5,4],[1,1,3.5,4],[1,1,2,3.5],[1,2.5,1,2],[1,3,2.5,3.5],[1,1,2,3],[1,2.5,1.5,2],[1,2.5,1.5,2],[1,2,2,3],[1,2.5,1,3],[1,2,1.5,3],[1,2,2,2.5],[1,1,3,3.5],[1,1,3,3],[1,1,3,3],[1,3,1.5,2],[1,1,3,3],[1,1,3.5,3],[1,1,3,3],[1,1,2,3],[1,2.5,1,2],[1,1.5,1.5,2],[1,1,3,3],[1,3,2,2],[1,3,1.5,2],[1,2.5,1.5,2],[1,2.5,1.5,2],[1,2,2,3],[1,3,1.5,2],[1,2,1.5,3],[1,2,1.5,3],[1,1,1.5,3],[1,1,1.5,3]]
 const DF7_OPTS = ["Support","Factory","Turnaround","Strategic"]
 const DF7_BASE = [3,3,3,3]
 const DF7_DESC = [
-  "TI berperan sebagai pendukung fungsi bisnis (tidak kritikal)",
-  "TI berperan kritikal dalam menjaga operasional bisnis yang berkelanjutan (menghindari downtime)",
-  "TI berperan penting dalam transformasi bisnis menuju model operasi yang baru",
-  "TI berperan strategis sebagai penggerak inovasi dan kompetisi bisnis",
+  "IT ทำหน้าที่สนับสนุนกระบวนการทางธุรกิจ (ไม่สำคัญมาก หยุดชั่วคราวได้)",
+  "IT มีบทบาทสำคัญในการรักษาการดำเนินงานต่อเนื่อง (ต้องไม่หยุดชะงัก)",
+  "IT มีบทบาทสำคัญในการปรับเปลี่ยนรูปแบบธุรกิจสู่โมเดลใหม่",
+  "IT มีบทบาทเชิงกลยุทธ์ในการขับเคลื่อนนวัตกรรมและความได้เปรียบในการแข่งขัน",
 ]
 
 const DF8_MAP = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[2,2,1],[1,1,1],[2,2,1],[2,2,1],[1,1,1],[1,1,1],[1,1,1],[1,1,2],[2,2,1],[3,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[1,1,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[1,1,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[2,2,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[2,2,1]]
 const DF8_OPTS = ["Outsourcing","Cloud","Insourced"]
 const DF8_BASE = [0.33,0.33,0.34]
 const DF8_DESC = [
-  "Layanan TI dikelola oleh pihak ketiga eksternal (outsourcing vendor)",
-  "Layanan TI berbasis cloud computing (SaaS, PaaS, IaaS)",
-  "Layanan TI dikelola secara internal oleh tim organisasi sendiri",
+  "บริการ IT ดำเนินการโดยผู้ให้บริการภายนอก (outsourcing vendor)",
+  "บริการ IT ใช้เทคโนโลยี cloud computing (SaaS, PaaS, IaaS)",
+  "บริการ IT ดำเนินการภายในองค์กรโดยทีมงานของตนเอง",
 ]
 
 const DF9_MAP = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1.5,1],[1,1,1],[1,1,1],[2,2,1],[2,2,1],[2,2,1],[1,1,1],[2,2,1],[2,2,1],[2,2,1],[1,1,1],[1,1,1],[1,1,1],[2,2,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1],[1,1,1]]
 const DF9_OPTS = ["Agile","DevOps","Traditional"]
 const DF9_BASE = [0.15,0.10,0.75]
 const DF9_DESC = [
-  "Metodologi pengembangan yang fleksibel dan iteratif (sprint-based, scrum, kanban)",
-  "Kolaborasi antara development, operations, dan keamanan secara terus-menerus",
-  "Metodologi pengembangan tradisional/waterfall dengan fase terstruktur",
+  "วิธีการพัฒนาที่ยืดหยุ่นและวนซ้ำแบบสั้น (sprint, scrum, kanban)",
+  "ความร่วมมือต่อเนื่องระหว่าง development, operations และความมั่นคงปลอดภัย",
+  "วิธีการพัฒนาแบบดั้งเดิม/waterfall ที่มีขั้นตอนชัดเจนและเป็นลำดับ",
 ]
 
 const DF10_MAP = [[3.5,2.5,1.5],[3.5,2.5,1.5],[1.5,1.5,1.5],[1.5,1.5,1.5],[2.5,2,1.5],[2,2,1.5],[4,3,1],[4,2.5,1],[4,3,1],[3.5,2.5,1],[1.5,1.5,1.5],[2.5,2,1.5],[2.5,2,1.5],[2,2,1.5],[2,2,1.5],[2,2,1.5],[2,1.5,1],[2.5,2,1.5],[2,1.5,1.5],[3.5,2.5,1],[3,2.5,1],[3,2.5,1],[2,2,1.5],[2.5,2,1.5],[2.5,2,1],[2,2,1.5],[2.5,2,1.5],[1.5,1.5,1.5],[2,2,1.5],[3,2.5,1],[1.5,1.5,1.5],[2,2,1.5],[2,2,1.5],[2,2,1.5],[3,2.5,1],[1.5,1.5,1.5],[2,1.5,1],[2,1.5,1],[2,1.5,1],[2,1.5,1]]
 const DF10_OPTS = ["First Mover","Follower","Slow Adopter"]
 const DF10_BASE = [0.15,0.70,0.15]
 const DF10_DESC = [
-  "Organisasi mengadopsi teknologi baru lebih awal dari pesaing (pioneer)",
-  "Organisasi mengadopsi teknologi setelah terbukti berhasil di pasaran",
-  "Organisasi mengadopsi teknologi secara perlahan dan konservatif",
+  "องค์กรนำเทคโนโลยีใหม่มาใช้ก่อนคู่แข่ง (early adopter/pioneer)",
+  "องค์กรนำเทคโนโลยีมาใช้หลังจากพิสูจน์แล้วว่าได้ผลในตลาด",
+  "องค์กรนำเทคโนโลยีมาใช้อย่างช้าๆ และระมัดระวัง (conservative)",
 ]
 
 const EG_AG_MAP: number[][] = [
@@ -198,19 +198,19 @@ const AG_OBJ_MAP: number[][] = [
 const EG_OPTS = ["EG01—Competitive products & services","EG02—Managed business risk","EG03—Compliance with external laws","EG04—Quality of financial information","EG05—Customer-oriented service culture","EG06—Business-service continuity","EG07—Quality of management information","EG08—Optimization of business processes","EG09—Optimization of business process costs","EG10—Staff skills & productivity","EG11—Compliance with internal policies","EG12—Digital transformation programs","EG13—Product & business innovation"]
 const EG_BASE = [4,2,2,1,2,3,2,3,1,4,2,5,5]
 const DF2_DESC = [
-  "EG01 — Portofolio produk dan layanan yang kompetitif",
-  "EG02 — Terkelolanya risiko bisnis",
-  "EG03 — Kepatuhan pada hukum dan peraturan eksternal",
-  "EG04 — Kualitas informasi keuangan",
-  "EG05 — Budaya layanan yang berorientasi pelanggan",
-  "EG06 — Keberlanjutan dan ketersediaan layanan bisnis",
-  "EG07 — Kualitas informasi manajemen",
-  "EG08 — Optimalisasi fungsionalitas proses bisnis internal",
-  "EG09 — Optimalisasi biaya proses bisnis",
-  "EG10 — Keterampilan, motivasi, dan produktivitas staf",
-  "EG11 — Kepatuhan terhadap kebijakan internal",
-  "EG12 — Terkelolanya program transformasi digital",
-  "EG13 — Inovasi produk dan bisnis",
+  "EG01 — พอร์ตโฟลิโอผลิตภัณฑ์และบริการที่มีความสามารถในการแข่งขัน",
+  "EG02 — การจัดการความเสี่ยงทางธุรกิจอย่างมีประสิทธิภาพ",
+  "EG03 — การปฏิบัติตามกฎหมายและข้อบังคับภายนอก",
+  "EG04 — คุณภาพและความถูกต้องของข้อมูลทางการเงิน",
+  "EG05 — วัฒนธรรมการบริการที่ยึดลูกค้าเป็นศูนย์กลาง",
+  "EG06 — ความต่อเนื่องและความพร้อมใช้งานของบริการทางธุรกิจ",
+  "EG07 — คุณภาพของข้อมูลสำหรับการตัดสินใจของผู้บริหาร",
+  "EG08 — การเพิ่มประสิทธิภาพฟังก์ชันกระบวนการทางธุรกิจภายใน",
+  "EG09 — การลดต้นทุนกระบวนการทางธุรกิจให้เหมาะสม",
+  "EG10 — ทักษะ แรงจูงใจ และประสิทธิผลของบุคลากร",
+  "EG11 — การปฏิบัติตามนโยบายและขั้นตอนภายในองค์กร",
+  "EG12 — การจัดการโครงการเปลี่ยนแปลงดิจิทัลอย่างมีประสิทธิภาพ",
+  "EG13 — นวัตกรรมผลิตภัณฑ์และรูปแบบธุรกิจ",
 ]
 
 // ─── Calculation ─────────────────────────────────────────────────────────────
