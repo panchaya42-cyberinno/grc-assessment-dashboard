@@ -379,47 +379,26 @@ const DF_BAR_COLORS = [
   "#5BC4B4","#A06BC4","#C49E6B","#6BC48C",
 ]
 
-function DFLegend() {
-  return (
-    <div className="flex items-center gap-3 mb-2">
-      <span className="flex items-center gap-1 text-[9px]" style={{ color:MUTED }}>
-        <span className="inline-block w-8 h-2.5 rounded-sm" style={{ background:"rgba(255,255,255,0.18)" }}/>
-        Baseline
-      </span>
-      <span className="flex items-center gap-1 text-[9px]" style={{ color:MUTED }}>
-        <span className="inline-block w-8 h-2.5 rounded-sm" style={{ background:TEAL, opacity:0.85 }}/>
-        Your Input
-      </span>
-    </div>
-  )
-}
-
 function DFInputChart({ options, values, baseline, max=5 }: { options:string[]; values:number[]; baseline:number[]; max?:number }) {
   const data = options.map((opt,i) => ({
     name: opt,
     value: values[i],
-    baseline: baseline[i],
     color: DF_BAR_COLORS[i % DF_BAR_COLORS.length],
   }))
   const labelW = Math.max(...options.map(o => o.length)) > 22 ? 165 : 130
+  void baseline
   return (
     <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization</p>
-      <DFLegend/>
-      <ResponsiveContainer width="100%" height={options.length * 46 + 28}>
-        <BarChart data={data} layout="vertical" barGap={3} barCategoryGap="30%" margin={{ top:0, right:44, left:0, bottom:4 }}>
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Input Visualization</p>
+      <ResponsiveContainer width="100%" height={options.length * 36 + 20}>
+        <BarChart data={data} layout="vertical" barCategoryGap="35%" margin={{ top:0, right:36, left:0, bottom:4 }}>
           <XAxis type="number" domain={[0, max]} tick={{ fontSize:8, fill:MUTED }} tickCount={max+1} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize:9.5, fill:TEXT }} width={labelW} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:11 }}
             labelStyle={{ color:TEXT }}
-            formatter={(v:number, name:string) => [v, name==="value" ? "Your Input" : "Baseline"]}
+            formatter={(v:number) => [v, "Importance"]}
           />
-          {/* Baseline bar — grey, thin */}
-          <Bar dataKey="baseline" barSize={8} fill="rgba(255,255,255,0.18)" radius={[0,3,3,0]}>
-            <LabelList dataKey="baseline" position="right" style={{ fill:MUTED, fontSize:9 }} />
-          </Bar>
-          {/* User input bar — colored, thick */}
           <Bar dataKey="value" barSize={20} radius={[0,4,4,0]}>
             {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.85} />)}
             <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} />
@@ -434,25 +413,21 @@ function DFPercentChart({ options, values, baseline }: { options:string[]; value
   const data = options.map((opt,i) => ({
     name: opt,
     value: Math.round(values[i]*100),
-    baseline: Math.round(baseline[i]*100),
     color: DF_BAR_COLORS[i % DF_BAR_COLORS.length],
   }))
+  void baseline
   return (
     <div className="mt-3 pt-2" style={{ borderTop:`1px solid ${BORDER}` }}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color:MUTED }}>Input Visualization (%)</p>
-      <DFLegend/>
-      <ResponsiveContainer width="100%" height={options.length * 46 + 28}>
-        <BarChart data={data} layout="vertical" barGap={3} barCategoryGap="30%" margin={{ top:0, right:52, left:0, bottom:4 }}>
+      <p className="text-[9px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Input Visualization (%)</p>
+      <ResponsiveContainer width="100%" height={options.length * 36 + 20}>
+        <BarChart data={data} layout="vertical" barCategoryGap="35%" margin={{ top:0, right:44, left:0, bottom:4 }}>
           <XAxis type="number" domain={[0, 100]} tick={{ fontSize:8, fill:MUTED }} tickCount={6} axisLine={false} tickLine={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize:9.5, fill:TEXT }} width={100} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:11 }}
             labelStyle={{ color:TEXT }}
-            formatter={(v:number, name:string) => [`${v}%`, name==="value" ? "Your Input" : "Baseline"]}
+            formatter={(v:number) => [`${v}%`, "Allocation"]}
           />
-          <Bar dataKey="baseline" barSize={8} fill="rgba(255,255,255,0.18)" radius={[0,3,3,0]}>
-            <LabelList dataKey="baseline" position="right" style={{ fill:MUTED, fontSize:9 }} formatter={(v:number) => `${v}%`} />
-          </Bar>
           <Bar dataKey="value" barSize={20} radius={[0,4,4,0]}>
             {data.map((d,i) => <Cell key={i} fill={d.color} fillOpacity={0.85} />)}
             <LabelList dataKey="value" position="right" style={{ fill:TEXT, fontSize:11, fontWeight:700 }} formatter={(v:number) => `${v}%`} />
