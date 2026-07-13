@@ -118,60 +118,69 @@ const EG_BASE = [4,2,2,1,2,3,2,3,1,4,2,5,5]
 
 // ─── Calculation ─────────────────────────────────────────────────────────────
 
-function calcScale15(map: number[][], userVals: number[], baseVals: number[]): number[] {
-  const userMean = userVals.reduce((a, b) => a + b, 0) / userVals.length
-  const baseMean = baseVals.reduce((a, b) => a + b, 0) / baseVals.length
-  const cf = userMean > 0 ? baseMean / userMean : 1
-  return map.map(w => {
-    const base = w.reduce((s, v, i) => s + baseVals[i] * v, 0)
-    const user = w.reduce((s, v, i) => s + userVals[i] * v, 0) * cf
-    return base === 0 ? 0 : Math.round(((user - base) / base) * 100)
-  })
+function weighted(map: number[][], vals: number[]): number[] {
+  return map.map(w => w.reduce((s, v, i) => s + vals[i] * v, 0))
 }
 
-function calcPercent(map: number[][], userPcts: number[], basePcts: number[]): number[] {
-  return map.map(w => {
-    const base = w.reduce((s, v, i) => s + basePcts[i] * v, 0)
-    const user = w.reduce((s, v, i) => s + userPcts[i] * v, 0)
-    return base === 0 ? 0 : Math.round(((user - base) / base) * 100)
-  })
+function correctionFactor(userVals: number[], baseVals: number[]): number {
+  const um = userVals.reduce((a, b) => a + b, 0) / userVals.length
+  const bm = baseVals.reduce((a, b) => a + b, 0) / baseVals.length
+  return um > 0 ? bm / um : 1
 }
 
-function calcDF2(egVals: number[], egBase: number[]): number[] {
-  const userMean = egVals.reduce((a, b) => a + b, 0) / egVals.length
-  const baseMean = egBase.reduce((a, b) => a + b, 0) / egBase.length
-  const cf = userMean > 0 ? baseMean / userMean : 1
-  const agUser = Array(13).fill(0)
-  const agBase = Array(13).fill(0)
+function mround5(x: number): number { return Math.round(x / 5) * 5 }
+
+// Returns [cf-adjusted user scores, baseline scores] for 40 objectives
+function dfScaleRaw(map: number[][], userVals: number[], baseVals: number[]): [number[], number[]] {
+  const cf = correctionFactor(userVals, baseVals)
+  return [weighted(map, userVals).map(v => v * cf), weighted(map, baseVals)]
+}
+
+function dfPercentRaw(map: number[][], userPcts: number[], basePcts: number[]): [number[], number[]] {
+  return [weighted(map, userPcts), weighted(map, basePcts)]
+}
+
+function dfDF2Raw(egVals: number[], egBase: number[]): [number[], number[]] {
+  const cf = correctionFactor(egVals, egBase)
+  const agU = Array(13).fill(0), agB = Array(13).fill(0)
   for (let i = 0; i < 13; i++)
     for (let j = 0; j < 13; j++) {
-      agUser[j] += egVals[i] * EG_AG_MAP[i][j]
-      agBase[j] += egBase[i] * EG_AG_MAP[i][j]
+      agU[j] += egVals[i] * EG_AG_MAP[i][j]
+      agB[j] += egBase[i] * EG_AG_MAP[i][j]
     }
-  return Array(40).fill(0).map((_, k) => {
-    const base = AG_OBJ_MAP.reduce((s, r, j) => s + agBase[j] * r[k], 0)
-    const user = AG_OBJ_MAP.reduce((s, r, j) => s + agUser[j] * r[k], 0) * cf
-    return base === 0 ? 0 : Math.round(((user - base) / base) * 100)
-  })
+  const u = Array(40).fill(0).map((_, k) => AG_OBJ_MAP.reduce((s, r, j) => s + agU[j] * r[k], 0) * cf)
+  const b = Array(40).fill(0).map((_, k) => AG_OBJ_MAP.reduce((s, r, j) => s + agB[j] * r[k], 0))
+  return [u, b]
 }
 
 function computeScores(df: Record<string, number[]>, onlyStep1 = false) {
-  const ri1 = calcScale15(DF1_MAP, df.df1, DF1_BASE)
-  const ri2 = calcDF2(df.df2, EG_BASE)
-  const ri3 = calcScale15(DF3_MAP, df.df3, DF3_BASE)
-  const ri4 = calcScale15(DF4_MAP, df.df4, DF4_BASE)
-  const ri5 = onlyStep1 ? Array(40).fill(0) : calcPercent(DF5_MAP, df.df5, DF5_BASE)
-  const ri6 = onlyStep1 ? Array(40).fill(0) : calcPercent(DF6_MAP, df.df6, DF6_BASE)
-  const ri7 = onlyStep1 ? Array(40).fill(0) : calcScale15(DF7_MAP, df.df7, DF7_BASE)
-  const ri8 = onlyStep1 ? Array(40).fill(0) : calcPercent(DF8_MAP, df.df8, DF8_BASE)
-  const ri9 = onlyStep1 ? Array(40).fill(0) : calcPercent(DF9_MAP, df.df9, DF9_BASE)
-  const ri10 = onlyStep1 ? Array(40).fill(0) : calcPercent(DF10_MAP, df.df10, DF10_BASE)
+  const z = Array(40).fill(0) as number[]
+
+  const [u1, b1] = dfScaleRaw(DF1_MAP, df.df1, DF1_BASE)
+  const [u2, b2] = dfDF2Raw(df.df2, EG_BASE)
+  const [u3, b3] = dfScaleRaw(DF3_MAP, df.df3, DF3_BASE)
+  const [u4, b4] = dfScaleRaw(DF4_MAP, df.df4, DF4_BASE)
+  const [u5, b5] = onlyStep1 ? [z, z] : dfPercentRaw(DF5_MAP, df.df5, DF5_BASE)
+  const [u6, b6] = onlyStep1 ? [z, z] : dfPercentRaw(DF6_MAP, df.df6, DF6_BASE)
+  const [u7, b7] = onlyStep1 ? [z, z] : dfScaleRaw(DF7_MAP, df.df7, DF7_BASE)
+  const [u8, b8] = onlyStep1 ? [z, z] : dfPercentRaw(DF8_MAP, df.df8, DF8_BASE)
+  const [u9, b9] = onlyStep1 ? [z, z] : dfPercentRaw(DF9_MAP, df.df9, DF9_BASE)
+  const [u10,b10]= onlyStep1 ? [z, z] : dfPercentRaw(DF10_MAP, df.df10, DF10_BASE)
 
   return OBJECTIVES.map((obj, i) => {
-    const total = ri1[i] + ri2[i] + ri3[i] + ri4[i] + ri5[i] + ri6[i] + ri7[i] + ri8[i] + ri9[i] + ri10[i]
-    const score = Math.max(-100, Math.min(100, Math.round(total / 10)))
-    const priority = score >= 25 ? "high" : score >= 0 ? "medium" : "low"
-    return { id: obj.id, name: obj.name, domain: obj.domain, score, priority }
+    const userScore     = u1[i]+u2[i]+u3[i]+u4[i]+u5[i]+u6[i]+u7[i]+u8[i]+u9[i]+u10[i]
+    const baselineScore = b1[i]+b2[i]+b3[i]+b4[i]+b5[i]+b6[i]+b7[i]+b8[i]+b9[i]+b10[i]
+    const ri = baselineScore === 0 ? 0 : mround5(100 * userScore / baselineScore - 100)
+    const relativeImportance = Math.max(-100, Math.min(100, ri))
+    const priority = relativeImportance >= 25 ? "high" : relativeImportance >= 0 ? "medium" : "low"
+    return {
+      id: obj.id, name: obj.name, domain: obj.domain,
+      userScore:    Math.round(userScore    * 10) / 10,
+      baselineScore:Math.round(baselineScore* 10) / 10,
+      relativeImportance,
+      score: relativeImportance,
+      priority,
+    }
   })
 }
 
@@ -485,16 +494,33 @@ function ResultsPanel({ scores, label }: { scores: ScoredObj[]; label: string })
       )}
       {/* list view */}
       {view==="list" && (
-        <div className="space-y-1">
-          {sorted.map(s=>(
-            <div key={s.id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
-              <DomainBadge domain={s.domain}/>
-              <span className="text-[10px] font-bold shrink-0 w-9" style={{ color:TEXT }}>{s.id}</span>
-              <span className="text-[9.5px] flex-1 min-w-0 truncate" style={{ color:MUTED }} title={s.name}>{s.name}</span>
-              <PriorityBadge score={s.score}/>
-              <ScoreBar score={s.score}/>
-            </div>
-          ))}
+        <div>
+          {/* table header */}
+          <div className="flex items-center gap-2 px-2.5 py-1 mb-1">
+            <span className="w-[22px] shrink-0"/>
+            <span className="w-9 shrink-0"/>
+            <span className="flex-1 min-w-0 text-[9px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Objective</span>
+            <span className="w-10 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>Score</span>
+            <span className="w-10 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>Base</span>
+            <span className="w-10 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>RI%</span>
+          </div>
+          <div className="space-y-0.5">
+            {sorted.map(s=>{
+              const riColor = s.relativeImportance > 0 ? TEAL : s.relativeImportance < 0 ? "#F87171" : MUTED
+              return (
+                <div key={s.id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+                  <DomainBadge domain={s.domain}/>
+                  <span className="text-[10px] font-bold shrink-0 w-9" style={{ color:TEXT }}>{s.id}</span>
+                  <span className="text-[9px] flex-1 min-w-0 truncate" style={{ color:MUTED }} title={s.name}>{s.name}</span>
+                  <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color:MUTED }}>{s.userScore.toFixed(1)}</span>
+                  <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color:"rgba(255,255,255,0.25)" }}>{s.baselineScore.toFixed(1)}</span>
+                  <span className="text-[11px] font-black w-10 text-right shrink-0" style={{ color: riColor }}>
+                    {s.relativeImportance > 0 ? "+" : ""}{s.relativeImportance}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -684,17 +710,32 @@ export default function COBIT2019Page() {
                 </div>
 
                 {/* All objectives */}
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Objectives ทั้งหมด 40 ข้อ</p>
-                <div className="space-y-1 mb-6">
-                  {[...initialScores].sort((a,b)=>b.score-a.score).map(s=>(
-                    <div key={s.id} className="flex items-center gap-2.5 rounded-lg px-3 py-2" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
-                      <DomainBadge domain={s.domain}/>
-                      <span className="text-[11px] font-bold w-10 shrink-0" style={{ color:TEXT }}>{s.id}</span>
-                      <span className="text-[11px] flex-1 min-w-0 truncate" style={{ color:MUTED }}>{s.name}</span>
-                      <PriorityBadge score={s.score}/>
-                      <ScoreBar score={s.score}/>
-                    </div>
-                  ))}
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Objectives ทั้งหมด 40 ข้อ — Resulting Governance/Management Objectives Importance</p>
+                {/* Table header */}
+                <div className="flex items-center gap-2.5 px-3 py-1.5 mb-1 rounded-lg" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <span className="w-[26px] shrink-0"/>
+                  <span className="w-10 shrink-0"/>
+                  <span className="flex-1 min-w-0 text-[9px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Governance / Management Objective</span>
+                  <span className="w-14 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>Score</span>
+                  <span className="w-16 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>Baseline</span>
+                  <span className="w-14 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:TEAL }}>Rel. Importance</span>
+                </div>
+                <div className="space-y-0.5 mb-6">
+                  {[...initialScores].sort((a,b)=>b.score-a.score).map(s=>{
+                    const riColor = s.relativeImportance > 0 ? TEAL : s.relativeImportance < 0 ? "#F87171" : MUTED
+                    return (
+                      <div key={s.id} className="flex items-center gap-2.5 rounded-lg px-3 py-2" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+                        <DomainBadge domain={s.domain}/>
+                        <span className="text-[11px] font-bold w-10 shrink-0" style={{ color:TEXT }}>{s.id}</span>
+                        <span className="text-[10px] flex-1 min-w-0 truncate" style={{ color:MUTED }}>{s.name}</span>
+                        <span className="text-[11px] font-mono w-14 text-right shrink-0" style={{ color:MUTED }}>{s.userScore.toFixed(1)}</span>
+                        <span className="text-[11px] font-mono w-16 text-right shrink-0" style={{ color:"rgba(255,255,255,0.3)" }}>{s.baselineScore.toFixed(1)}</span>
+                        <span className="text-[12px] font-black w-14 text-right shrink-0" style={{ color: riColor }}>
+                          {s.relativeImportance > 0 ? "+" : ""}{s.relativeImportance}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* Nav buttons */}
@@ -824,18 +865,34 @@ export default function COBIT2019Page() {
                 </div>
 
                 {/* Final list */}
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Objectives สุดท้าย (เรียงตามความสำคัญ)</p>
-                <div className="space-y-1 mb-6">
-                  {[...fullScores].sort((a,b)=>b.score-a.score).map((s,rank)=>(
-                    <div key={s.id} className="flex items-center gap-2.5 rounded-lg px-3 py-2" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
-                      <span className="text-[10px] font-black w-5 text-center shrink-0" style={{ color:MUTED }}>#{rank+1}</span>
-                      <DomainBadge domain={s.domain}/>
-                      <span className="text-[11px] font-bold w-10 shrink-0" style={{ color:TEXT }}>{s.id}</span>
-                      <span className="text-[11px] flex-1 min-w-0 truncate" style={{ color:MUTED }}>{s.name}</span>
-                      <PriorityBadge score={s.score}/>
-                      <ScoreBar score={s.score}/>
-                    </div>
-                  ))}
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color:MUTED }}>Resulting Governance/Management Objectives Importance</p>
+                {/* Table header */}
+                <div className="flex items-center gap-2.5 px-3 py-1.5 mb-1 rounded-lg" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <span className="w-6 shrink-0"/>
+                  <span className="w-[26px] shrink-0"/>
+                  <span className="w-10 shrink-0"/>
+                  <span className="flex-1 min-w-0 text-[9px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Governance / Management Objective</span>
+                  <span className="w-14 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>Score</span>
+                  <span className="w-16 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:MUTED }}>Baseline</span>
+                  <span className="w-14 text-right text-[9px] font-semibold uppercase tracking-wider shrink-0" style={{ color:TEAL }}>Rel. Importance</span>
+                </div>
+                <div className="space-y-0.5 mb-6">
+                  {[...fullScores].sort((a,b)=>b.score-a.score).map((s,rank)=>{
+                    const riColor = s.relativeImportance > 0 ? TEAL : s.relativeImportance < 0 ? "#F87171" : MUTED
+                    return (
+                      <div key={s.id} className="flex items-center gap-2.5 rounded-lg px-3 py-2" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+                        <span className="text-[10px] font-black w-6 text-center shrink-0" style={{ color:MUTED }}>#{rank+1}</span>
+                        <DomainBadge domain={s.domain}/>
+                        <span className="text-[11px] font-bold w-10 shrink-0" style={{ color:TEXT }}>{s.id}</span>
+                        <span className="text-[10px] flex-1 min-w-0 truncate" style={{ color:MUTED }}>{s.name}</span>
+                        <span className="text-[11px] font-mono w-14 text-right shrink-0" style={{ color:MUTED }}>{s.userScore.toFixed(1)}</span>
+                        <span className="text-[11px] font-mono w-16 text-right shrink-0" style={{ color:"rgba(255,255,255,0.3)" }}>{s.baselineScore.toFixed(1)}</span>
+                        <span className="text-[12px] font-black w-14 text-right shrink-0" style={{ color: riColor }}>
+                          {s.relativeImportance > 0 ? "+" : ""}{s.relativeImportance}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* Nav */}
