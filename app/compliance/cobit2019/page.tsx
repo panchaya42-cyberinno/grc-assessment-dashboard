@@ -404,28 +404,33 @@ function DFObjRadar({ scores, color }: { scores: DFScore[]; color: string }) {
 
 // ─── DF Input Bar Chart (shows DF input values as horizontal bars) ───────────
 
+const BAR_PALETTE = ["#2DD4BF", "#A78BFA", "#FBBF24", "#FB7185", "#60A5FA", "#34D399"]
+
 function DFInputBarChart({ items, color }: {
   items: { label: string; pct: number; displayValue: string; barColor?: string }[]
   color: string
 }) {
   return (
     <div className="space-y-3">
-      {items.map((item, i) => (
-        <div key={i}>
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <span className="text-[9.5px] leading-tight flex-1 min-w-0" style={{ color:TEXT }}>{item.label}</span>
-            <span className="text-[12px] font-black shrink-0" style={{ color: item.barColor || color }}>{item.displayValue}</span>
+      {items.map((item, i) => {
+        const c = item.barColor || BAR_PALETTE[i % BAR_PALETTE.length]
+        return (
+          <div key={i}>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <span className="text-[9.5px] leading-tight flex-1 min-w-0" style={{ color:TEXT }}>{item.label}</span>
+              <span className="text-[12px] font-black shrink-0" style={{ color: c }}>{item.displayValue}</span>
+            </div>
+            <div className="h-5 rounded overflow-hidden" style={{ background:"rgba(255,255,255,0.06)" }}>
+              <div style={{
+                width:`${Math.max(item.pct, 0)}%`, height:"100%",
+                background: c, borderRadius:3,
+                minWidth: item.pct > 0 ? 4 : 0,
+                transition:"width 0.25s ease",
+              }}/>
+            </div>
           </div>
-          <div className="h-5 rounded overflow-hidden" style={{ background:"rgba(255,255,255,0.06)" }}>
-            <div style={{
-              width:`${Math.max(item.pct, 0)}%`, height:"100%",
-              background: item.barColor || color, borderRadius:3,
-              minWidth: item.pct > 0 ? 4 : 0,
-              transition:"width 0.25s ease",
-            }}/>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
