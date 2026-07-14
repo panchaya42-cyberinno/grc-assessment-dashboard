@@ -382,6 +382,26 @@ function ObjRadar({ scores }: { scores: FullScore[] }) {
   )
 }
 
+// ─── DF Radar Chart (per-DF RI on 40 objectives) ─────────────────────────────
+
+function DFObjRadar({ scores, color }: { scores: DFScore[]; color: string }) {
+  const data = scores.map(s => ({ id: s.id, v: Math.round((s.ri + 100) / 2) }))
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <RadarChart data={data} outerRadius="70%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
+        <PolarGrid stroke="rgba(255,255,255,0.07)" />
+        <PolarAngleAxis dataKey="id" tick={{ fontSize: 6, fill: MUTED }} />
+        <Radar dataKey="v" stroke={color} fill={color} fillOpacity={0.15} strokeWidth={1.5} />
+        <Tooltip
+          contentStyle={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 10 }}
+          formatter={(v: number) => [v * 2 - 100 > 0 ? `+${v * 2 - 100}` : v * 2 - 100, "RI"]}
+          labelStyle={{ color: TEXT }}
+        />
+      </RadarChart>
+    </ResponsiveContainer>
+  )
+}
+
 // ─── DF Input Bar Chart (shows DF input values as horizontal bars) ───────────
 
 function DFInputBarChart({ items, color }: {
@@ -647,13 +667,22 @@ function DFTabContent({ dfNum, title, subtitle, children, dfScores, totalPct, in
         </div>
 
         {/* Bottom: 5 domain objective cards */}
-        <div className="px-4 py-4">
+        <div className="px-4 pt-4 pb-2">
           <p className="text-[9px] font-semibold uppercase tracking-wider mb-3"
             style={{ color:MUTED }}>RI ต่อ 40 Governance Objectives — DF{dfNum}</p>
           <div className="grid grid-cols-5 gap-3">
             {["EDM","APO","BAI","DSS","MEA"].map(domain => (
               <DomainObjectivesCard key={domain} domain={domain} scores={dfScores} />
             ))}
+          </div>
+        </div>
+
+        {/* Bottom: radar chart */}
+        <div className="px-4 py-4">
+          <p className="text-[9px] font-semibold uppercase tracking-wider mb-3"
+            style={{ color:MUTED }}>Radar — Governance Objectives Importance (DF{dfNum})</p>
+          <div className="rounded-xl p-3" style={{ background:CARD, border:`1px solid ${BORDER}` }}>
+            <DFObjRadar scores={dfScores} color={TAB_COLORS[dfNum-1]} />
           </div>
         </div>
       </div>
