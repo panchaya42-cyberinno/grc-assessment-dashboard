@@ -382,49 +382,31 @@ function ObjRadar({ scores }: { scores: FullScore[] }) {
   )
 }
 
-// ─── DF Domain Summary Chart (avg RI per domain, 5 bars) ─────────────────────
+// ─── DF Input Bar Chart (shows DF input values as horizontal bars) ───────────
 
-function DFDomainChart({ scores }: { scores: DFScore[] }) {
-  const domains = ["EDM","APO","BAI","DSS","MEA"]
-  const data = domains.map(d => {
-    const ds = scores.filter(s => s.domain === d)
-    const avg = ds.length > 0 ? Math.round(ds.reduce((a,s)=>a+s.ri,0)/ds.length) : 0
-    return { domain: d, ri: avg }
-  })
+function DFInputBarChart({ items, color }: {
+  items: { label: string; pct: number; displayValue: string; barColor?: string }[]
+  color: string
+}) {
   return (
-    <ResponsiveContainer width="100%" height={165}>
-      <BarChart data={data} layout="vertical" barSize={16}
-        margin={{ top:4, right:52, left:10, bottom:4 }}>
-        <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.04)" />
-        <XAxis type="number" domain={[-100,100]}
-          tick={{ fontSize:7, fill:MUTED }} tickLine={false}
-          axisLine={{ stroke:"rgba(255,255,255,0.08)" }} />
-        <YAxis type="category" dataKey="domain" width={38} tickLine={false} axisLine={false}
-          tick={(props: {x:number;y:number;payload:{value:string}}) => {
-            const { x, y, payload } = props
-            const c = DOMAIN_COLORS[payload.value] || TEXT
-            return (
-              <g transform={`translate(${x},${y})`}>
-                <text x={-4} y={0} dy={4} textAnchor="end"
-                  style={{ fontSize:11, fontWeight:800, fill:c }}>{payload.value}</text>
-              </g>
-            )
-          }}
-        />
-        <ReferenceLine x={0} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
-        <Tooltip
-          contentStyle={{ background:CARD, border:`1px solid ${BORDER}`, borderRadius:8, fontSize:10 }}
-          formatter={(v:number) => [v>0?`+${v}`:v, "Avg RI"]}
-          labelStyle={{ color:TEXT }}
-        />
-        <Bar dataKey="ri" radius={[0,3,3,0]}>
-          {data.map((d,i) => <Cell key={i} fill={DOMAIN_COLORS[d.domain] || TEAL} />)}
-          <LabelList dataKey="ri" position="right"
-            style={{ fontSize:9, fontWeight:700, fill:TEXT }}
-            formatter={(v:number) => v > 0 ? `+${v}` : String(v)} />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i}>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <span className="text-[9.5px] leading-tight flex-1 min-w-0" style={{ color:TEXT }}>{item.label}</span>
+            <span className="text-[12px] font-black shrink-0" style={{ color: item.barColor || color }}>{item.displayValue}</span>
+          </div>
+          <div className="h-5 rounded overflow-hidden" style={{ background:"rgba(255,255,255,0.06)" }}>
+            <div style={{
+              width:`${Math.max(item.pct, 0)}%`, height:"100%",
+              background: item.barColor || color, borderRadius:3,
+              minWidth: item.pct > 0 ? 4 : 0,
+              transition:"width 0.25s ease",
+            }}/>
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -622,9 +604,9 @@ function InputTableHeader({ importanceLabel="Importance", baselineLabel="Baselin
 
 // ─── DF Tab Content ───────────────────────────────────────────────────────────
 
-function DFTabContent({ dfNum, title, subtitle, children, dfScores, totalPct }: {
+function DFTabContent({ dfNum, title, subtitle, children, dfScores, totalPct, inputChart }: {
   dfNum:number; title:string; subtitle:string; children:React.ReactNode;
-  dfScores:DFScore[]; totalPct?:number;
+  dfScores:DFScore[]; totalPct?:number; inputChart?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -648,18 +630,20 @@ function DFTabContent({ dfNum, title, subtitle, children, dfScores, totalPct }: 
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
-        {/* Top row: inputs (left) + domain RI chart (right) */}
+        {/* Top row: inputs (left) + input bar chart (right) */}
         <div className="flex" style={{ borderBottom:`1px solid ${BORDER}` }}>
-          {/* Inputs */}
           <div className="flex-1 min-w-0 px-4 py-3">
             {children}
           </div>
-          {/* Right: full 40-objective RI bar chart */}
-          <div className="w-[420px] shrink-0 px-3 py-3" style={{ borderLeft:`1px solid ${BORDER}` }}>
-            <p className="text-[10px] font-bold" style={{ color:TEAL }}>Contribution — DF{dfNum}</p>
-            <p className="text-[8.5px] mb-2" style={{ color:MUTED }}>RI ต่อ 40 Governance Objectives (เรียงมากไปน้อย)</p>
-            <ObjHorizBar scores={[...dfScores].sort((a,b)=>b.ri-a.ri)} />
-          </div>
+          {inputChart && (
+            <div className="w-72 shrink-0 px-4 py-3" style={{ borderLeft:`1px solid ${BORDER}` }}>
+              <p className="text-[10px] font-bold mb-0.5" style={{ color:TAB_COLORS[dfNum-1] }}>
+                DF{dfNum} Input Values
+              </p>
+              <p className="text-[8.5px] mb-3" style={{ color:MUTED }}>ค่าที่กำหนดสำหรับแต่ละ option</p>
+              {inputChart}
+            </div>
+          )}
         </div>
 
         {/* Bottom: 5 domain objective cards */}
@@ -865,7 +849,8 @@ export default function COBIT2019Page() {
 
           {/* DF1 — Enterprise Strategy */}
           {activeTab===0 && (
-            <DFTabContent dfNum={1} title="Enterprise Strategy" subtitle="กลยุทธ์ขององค์กร — ระบุความสำคัญของแต่ละ strategy archetype (1=น้อย, 5=มาก)" dfScores={dfScores[0]}>
+            <DFTabContent dfNum={1} title="Enterprise Strategy" subtitle="กลยุทธ์ขององค์กร — ระบุความสำคัญของแต่ละ strategy archetype (1=น้อย, 5=มาก)" dfScores={dfScores[0]}
+              inputChart={<DFInputBarChart color={TAB_COLORS[0]} items={DF1_OPTS.map((l,i)=>({ label:l, pct:(dfBase.df1[i]-1)/4*100, displayValue:String(dfBase.df1[i]) }))}/>}>
               <InputTableHeader importanceLabel="Importance (1–5)" baselineLabel="Baseline"/>
               {DF1_OPTS.map((opt,i) => (
                 <ScaleRow key={i} idx={i+1} label={opt} desc={DF1_DESC[i]} value={dfBase.df1[i]} baseline={DF1_BASE[i]} min={1} max={5} onChange={v=>updateDf("df1",i,v)}/>
@@ -875,7 +860,8 @@ export default function COBIT2019Page() {
 
           {/* DF2 — Enterprise Goals */}
           {activeTab===1 && (
-            <DFTabContent dfNum={2} title="Enterprise Goals" subtitle="เป้าหมายองค์กร — ระบุความสำคัญของแต่ละ enterprise goal (1=น้อย, 5=มาก)" dfScores={dfScores[1]}>
+            <DFTabContent dfNum={2} title="Enterprise Goals" subtitle="เป้าหมายองค์กร — ระบุความสำคัญของแต่ละ enterprise goal (1=น้อย, 5=มาก)" dfScores={dfScores[1]}
+              inputChart={<DFInputBarChart color={TAB_COLORS[1]} items={EG_OPTS.map((l,i)=>({ label:l, pct:(dfBase.df2[i]-1)/4*100, displayValue:String(dfBase.df2[i]) }))}/>}>
               <InputTableHeader importanceLabel="Importance (1–5)" baselineLabel="Baseline"/>
               {EG_OPTS.map((opt,i) => (
                 <ScaleRow key={i} idx={i+1} label={opt} desc={DF2_DESC[i]} value={dfBase.df2[i]} baseline={EG_BASE[i]} min={1} max={5} onChange={v=>updateDf("df2",i,v)}/>
@@ -885,8 +871,11 @@ export default function COBIT2019Page() {
 
           {/* DF3 — Risk Profile */}
           {activeTab===2 && (
-            <DFTabContent dfNum={3} title="Risk Profile" subtitle="โปรไฟล์ความเสี่ยง — ประเมิน Impact (1–5) × Likelihood (1–5) ของแต่ละ risk scenario (Baseline = 9)" dfScores={dfScores[2]}>
-              {/* DF3-specific header */}
+            <DFTabContent dfNum={3} title="Risk Profile" subtitle="โปรไฟล์ความเสี่ยง — ประเมิน Impact (1–5) × Likelihood (1–5) ของแต่ละ risk scenario (Baseline = 9)" dfScores={dfScores[2]}
+              inputChart={<DFInputBarChart color={TAB_COLORS[2]} items={DF3_OPTS.map((l,i)=>{
+                const rating=df3Impact[i]*df3Likelihood[i]
+                return { label:l, pct:rating/25*100, displayValue:`${rating}`, barColor: rating>9?TEAL:rating<9?"#F87171":TAB_COLORS[2] }
+              })}/>}>
               <div className="flex items-center gap-0 py-1 mb-0" style={{ borderBottom:`1px solid ${BORDER}`, background:"rgba(255,255,255,0.02)" }}>
                 <div className="w-7 shrink-0"/>
                 <div className="w-36 shrink-0 text-[8px] font-semibold uppercase tracking-wider" style={{ color:MUTED }}>Risk Scenario</div>
@@ -903,7 +892,11 @@ export default function COBIT2019Page() {
 
           {/* DF4 — I&T-Related Issues */}
           {activeTab===3 && (
-            <DFTabContent dfNum={4} title="I&T-Related Issues" subtitle="ปัญหาที่เกี่ยวข้องกับ IT — เลือกระดับปัญหาที่เกิดขึ้น: — = ไม่มี, L = น้อย, M = ปานกลาง, H = มาก" dfScores={dfScores[3]}>
+            <DFTabContent dfNum={4} title="I&T-Related Issues" subtitle="ปัญหาที่เกี่ยวข้องกับ IT — เลือกระดับปัญหาที่เกิดขึ้น: — = ไม่มี, L = น้อย, M = ปานกลาง, H = มาก" dfScores={dfScores[3]}
+              inputChart={<DFInputBarChart color={TAB_COLORS[3]} items={DF4_OPTS.map((l,i)=>({
+                label:l, pct:dfBase.df4[i]/3*100, displayValue:ISSUE_LABELS[dfBase.df4[i]],
+                barColor:ISSUE_COLORS[dfBase.df4[i]]
+              }))}/>}>
               <InputTableHeader importanceLabel="Level (—/L/M/H)" baselineLabel="Baseline"/>
               {DF4_OPTS.map((opt,i) => (
                 <IssueRow key={i} idx={i+1} label={opt} desc={DF4_DESC[i]} value={dfBase.df4[i]} baseline={DF4_BASE[i]} onChange={v=>updateDf("df4",i,v)}/>
@@ -913,7 +906,8 @@ export default function COBIT2019Page() {
 
           {/* DF5 — Threat Landscape */}
           {activeTab===4 && (
-            <DFTabContent dfNum={5} title="Threat Landscape" subtitle="ภูมิทัศน์ภัยคุกคาม — สัดส่วนระดับภัยคุกคาม (ต้องรวม 100%)" dfScores={dfScores[4]} totalPct={df5Total}>
+            <DFTabContent dfNum={5} title="Threat Landscape" subtitle="ภูมิทัศน์ภัยคุกคาม — สัดส่วนระดับภัยคุกคาม (ต้องรวม 100%)" dfScores={dfScores[4]} totalPct={df5Total}
+              inputChart={<DFInputBarChart color={TAB_COLORS[4]} items={DF5_OPTS.map((l,i)=>({ label:l, pct:dfBase.df5[i]*100, displayValue:Math.round(dfBase.df5[i]*100)+"%" }))}/>}>
               <InputTableHeader importanceLabel="Allocation (%)" baselineLabel="Baseline"/>
               {DF5_OPTS.map((opt,i) => (
                 <PercentRow key={i} idx={i+1} label={opt} desc={DF5_DESC[i]} value={dfBase.df5[i]} baseline={DF5_BASE[i]} onChange={v=>updateDf("df5",i,v)}/>
@@ -923,7 +917,8 @@ export default function COBIT2019Page() {
 
           {/* DF6 — Compliance Requirements */}
           {activeTab===5 && (
-            <DFTabContent dfNum={6} title="Compliance Requirements" subtitle="ข้อกำหนดการปฏิบัติตาม — สัดส่วนระดับ compliance (ต้องรวม 100%)" dfScores={dfScores[5]} totalPct={df6Total}>
+            <DFTabContent dfNum={6} title="Compliance Requirements" subtitle="ข้อกำหนดการปฏิบัติตาม — สัดส่วนระดับ compliance (ต้องรวม 100%)" dfScores={dfScores[5]} totalPct={df6Total}
+              inputChart={<DFInputBarChart color={TAB_COLORS[5]} items={DF6_OPTS.map((l,i)=>({ label:l, pct:dfBase.df6[i]*100, displayValue:Math.round(dfBase.df6[i]*100)+"%" }))}/>}>
               <InputTableHeader importanceLabel="Allocation (%)" baselineLabel="Baseline"/>
               {DF6_OPTS.map((opt,i) => (
                 <PercentRow key={i} idx={i+1} label={opt} desc={DF6_DESC[i]} value={dfBase.df6[i]} baseline={DF6_BASE[i]} onChange={v=>updateDf("df6",i,v)}/>
@@ -933,7 +928,8 @@ export default function COBIT2019Page() {
 
           {/* DF7 — Role of IT */}
           {activeTab===6 && (
-            <DFTabContent dfNum={7} title="Role of IT" subtitle="บทบาทของ IT ในองค์กร — ระบุความสำคัญของแต่ละบทบาท (1=น้อย, 5=มาก)" dfScores={dfScores[6]}>
+            <DFTabContent dfNum={7} title="Role of IT" subtitle="บทบาทของ IT ในองค์กร — ระบุความสำคัญของแต่ละบทบาท (1=น้อย, 5=มาก)" dfScores={dfScores[6]}
+              inputChart={<DFInputBarChart color={TAB_COLORS[6]} items={DF7_OPTS.map((l,i)=>({ label:l, pct:(dfBase.df7[i]-1)/4*100, displayValue:String(dfBase.df7[i]) }))}/>}>
               <InputTableHeader importanceLabel="Importance (1–5)" baselineLabel="Baseline"/>
               {DF7_OPTS.map((opt,i) => (
                 <ScaleRow key={i} idx={i+1} label={opt} desc={DF7_DESC[i]} value={dfBase.df7[i]} baseline={DF7_BASE[i]} min={1} max={5} onChange={v=>updateDf("df7",i,v)}/>
@@ -943,7 +939,8 @@ export default function COBIT2019Page() {
 
           {/* DF8 — Sourcing Model */}
           {activeTab===7 && (
-            <DFTabContent dfNum={8} title="Sourcing Model for IT" subtitle="รูปแบบการจัดหา IT — สัดส่วน sourcing model (ต้องรวม 100%)" dfScores={dfScores[7]} totalPct={df8Total}>
+            <DFTabContent dfNum={8} title="Sourcing Model for IT" subtitle="รูปแบบการจัดหา IT — สัดส่วน sourcing model (ต้องรวม 100%)" dfScores={dfScores[7]} totalPct={df8Total}
+              inputChart={<DFInputBarChart color={TAB_COLORS[7]} items={DF8_OPTS.map((l,i)=>({ label:l, pct:dfBase.df8[i]*100, displayValue:Math.round(dfBase.df8[i]*100)+"%" }))}/>}>
               <InputTableHeader importanceLabel="Allocation (%)" baselineLabel="Baseline"/>
               {DF8_OPTS.map((opt,i) => (
                 <PercentRow key={i} idx={i+1} label={opt} desc={DF8_DESC[i]} value={dfBase.df8[i]} baseline={DF8_BASE[i]} onChange={v=>updateDf("df8",i,v)}/>
@@ -953,7 +950,8 @@ export default function COBIT2019Page() {
 
           {/* DF9 — IT Implementation Methods */}
           {activeTab===8 && (
-            <DFTabContent dfNum={9} title="IT Implementation Methods" subtitle="วิธีการ implement IT — สัดส่วนวิธีการพัฒนา (ต้องรวม 100%)" dfScores={dfScores[8]} totalPct={df9Total}>
+            <DFTabContent dfNum={9} title="IT Implementation Methods" subtitle="วิธีการ implement IT — สัดส่วนวิธีการพัฒนา (ต้องรวม 100%)" dfScores={dfScores[8]} totalPct={df9Total}
+              inputChart={<DFInputBarChart color={TAB_COLORS[8]} items={DF9_OPTS.map((l,i)=>({ label:l, pct:dfBase.df9[i]*100, displayValue:Math.round(dfBase.df9[i]*100)+"%" }))}/>}>
               <InputTableHeader importanceLabel="Allocation (%)" baselineLabel="Baseline"/>
               {DF9_OPTS.map((opt,i) => (
                 <PercentRow key={i} idx={i+1} label={opt} desc={DF9_DESC[i]} value={dfBase.df9[i]} baseline={DF9_BASE[i]} onChange={v=>updateDf("df9",i,v)}/>
@@ -963,7 +961,8 @@ export default function COBIT2019Page() {
 
           {/* DF10 — Technology Adoption */}
           {activeTab===9 && (
-            <DFTabContent dfNum={10} title="Technology Adoption Strategy" subtitle="กลยุทธ์การ adopt เทคโนโลยีใหม่ — สัดส่วน adoption approach (ต้องรวม 100%)" dfScores={dfScores[9]} totalPct={df10Total}>
+            <DFTabContent dfNum={10} title="Technology Adoption Strategy" subtitle="กลยุทธ์การ adopt เทคโนโลยีใหม่ — สัดส่วน adoption approach (ต้องรวม 100%)" dfScores={dfScores[9]} totalPct={df10Total}
+              inputChart={<DFInputBarChart color={TAB_COLORS[9]} items={DF10_OPTS.map((l,i)=>({ label:l, pct:dfBase.df10[i]*100, displayValue:Math.round(dfBase.df10[i]*100)+"%" }))}/>}>
               <InputTableHeader importanceLabel="Allocation (%)" baselineLabel="Baseline"/>
               {DF10_OPTS.map((opt,i) => (
                 <PercentRow key={i} idx={i+1} label={opt} desc={DF10_DESC[i]} value={dfBase.df10[i]} baseline={DF10_BASE[i]} onChange={v=>updateDf("df10",i,v)}/>
