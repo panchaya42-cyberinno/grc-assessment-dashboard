@@ -976,7 +976,7 @@ export function ConsentManager() {
       })
       if (res.ok) {
         const json = await res.json()
-        templateId = json.id
+        templateId = json.templateId
         // บันทึก templateId ลง localStorage
         const updated = programs.map(pr => pr.id === p.id ? { ...pr, consentTemplateId: templateId! } : pr)
         setPrograms(updated)
