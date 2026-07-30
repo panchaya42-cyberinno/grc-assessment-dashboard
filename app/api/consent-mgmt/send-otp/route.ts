@@ -47,13 +47,14 @@ export async function POST(req: NextRequest) {
     }
 
     // upsert subject
-    const { data: subject } = await supabase
+    const { data: subject, error: sErr } = await supabase
       .from("consent_subjects")
       .upsert({ email }, { onConflict: "email" })
       .select("id")
       .single()
     if (!subject) {
-      return NextResponse.json({ error: "Could not create subject" }, { status: 500 })
+      console.error("consent_subjects upsert error:", JSON.stringify(sErr))
+      return NextResponse.json({ error: "Could not create subject", detail: sErr?.message, code: sErr?.code }, { status: 500 })
     }
 
     // สร้าง consent record ใหม่ (pending)
