@@ -42,21 +42,28 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    let userId: string | undefined
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      userId = user?.id
+    } catch { /* unauthenticated — ok */ }
 
     // สร้าง template
     const { data: template, error: tErr } = await supabase
       .from("consent_templates")
       .insert({
         name, name_th, name_en, category, description,
-        default_expiry_days, requires_double_optin, allow_partial_consent,
+        default_expiry_days: default_expiry_days ?? null,
         current_version: 1,
         is_published: false,
-        created_by: user?.id,
+        created_by: userId ?? null,
       })
       .select("id")
       .single()
-    if (tErr || !template) return NextResponse.json({ error: tErr?.message }, { status: 500 })
+    if (tErr || !template) {
+      console.error("consent_templates INSERT error:", JSON.stringify(tErr))
+      return NextResponse.json({ error: tErr?.message, code: tErr?.code, details: tErr?.details }, { status: 500 })
+    }
 
     // สร้าง version 1
     const { data: version, error: vErr } = await supabase
