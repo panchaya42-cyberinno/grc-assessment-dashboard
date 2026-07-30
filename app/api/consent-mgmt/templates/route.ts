@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     await supabase.from("consent_audit_log").insert({
       action: "template_created",
       template_id: template.id,
-      actor_user_id: user?.id,
+      actor_user_id: userId ?? null,
       metadata: { name, version: 1 },
     })
 
