@@ -108,12 +108,15 @@ export async function POST(req: NextRequest) {
 
     // ส่ง OTP email
     const templateName = template.name_th ?? template.name
-    await sendOTPEmail(email, otp, templateName)
+    const emailSent = await sendOTPEmail(email, otp, templateName)
+    const devMode = !process.env.RESEND_API_KEY
 
     return NextResponse.json({
       success: true,
       sessionToken,
       maskedEmail: maskEmail(email),
+      // ในโหมด dev (ไม่มี RESEND_API_KEY) ให้ OTP ตรงๆ เพื่อทดสอบ
+      ...(devMode && { devOtp: otp }),
     })
   } catch (e) {
     console.error("send-otp error:", e)
