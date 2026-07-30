@@ -973,8 +973,8 @@ export function ConsentManager() {
           }],
         }),
       })
-      if (res.ok) {
-        const json = await res.json()
+      const json = await res.json()
+      if (res.ok && json.templateId) {
         templateId = json.templateId
         const updated = programs.map(pr => pr.id === p.id ? { ...pr, consentTemplateId: templateId! } : pr)
         setPrograms(updated)
@@ -984,6 +984,10 @@ export function ConsentManager() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ templateId, action: "publish" }),
         })
+      } else {
+        setSyncingLinkId(null)
+        alert("สร้าง template ไม่สำเร็จ:\n" + JSON.stringify(json))
+        return
       }
     }
     setSyncingLinkId(null)
