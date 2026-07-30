@@ -125,17 +125,7 @@ export async function POST(req: NextRequest) {
     // ── Step 1: Try to extract text from PDF ─────────────────────────────────
     let extractedText = extractTextFromPdfBuffer(buffer)
 
-    // Also try pdf-parse if available
-    if (extractedText.length < 200) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse")
-        const data = await pdfParse(buffer)
-        if (data.text && data.text.length > extractedText.length) {
-          extractedText = data.text.trim()
-        }
-      } catch { /* pdf-parse not available, use extracted text */ }
-    }
+    // pdf-parse fallback removed — using built-in extractTextFromPdfBuffer only
 
     const hasGoodText = extractedText.length > 300
 
