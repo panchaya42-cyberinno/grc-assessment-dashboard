@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateOTP, hashOTP, maskEmail, sendOTPEmail } from "@/lib/consent-otp"
+import { validateEmail } from "@/lib/consent-email-validator"
 
 export async function POST(req: NextRequest) {
   try {
     const { email, templateId, language = "th" } = await req.json()
     if (!email || !templateId) {
       return NextResponse.json({ error: "email and templateId required" }, { status: 400 })
+    }
+
+    const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? undefined
+
+    // ตรวจสอบ email: format, disposable, MX record, rate limit
+    const validation = await validateEmail(email, ip)
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error, retryAfterMinutes: validation.retryAfterMinutes },
+        { status: validation.retryAfterMinutes ? 429 : 400 }
+      )
     }
 
     const supabase = await createClient()
