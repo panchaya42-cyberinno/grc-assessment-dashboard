@@ -46,14 +46,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No active version" }, { status: 404 })
     }
 
-    // upsert subject
+    // insert subject (ignore if duplicate email), then select
+    await supabase
+      .from("consent_subjects")
+      .upsert({ email }, { onConflict: "email", ignoreDuplicates: true })
+
     const { data: subject, error: sErr } = await supabase
       .from("consent_subjects")
-      .upsert({ email }, { onConflict: "email" })
       .select("id")
+      .eq("email", email)
       .single()
     if (!subject) {
-      console.error("consent_subjects upsert error:", JSON.stringify(sErr))
+      console.error("consent_subjects select error:", JSON.stringify(sErr))
       return NextResponse.json({ error: "Could not create subject", detail: sErr?.message, code: sErr?.code }, { status: 500 })
     }
 
