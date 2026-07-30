@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
 
     // สร้าง consent record ใหม่ (pending)
     const sessionToken = crypto.randomUUID()
-    const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? undefined
     const userAgent = req.headers.get("user-agent") ?? undefined
 
     const { data: record } = await supabase
