@@ -66,6 +66,14 @@ export default function ConsentTemplatesPage() {
   const [showForm, setShowForm]     = useState(false)
   const [saving, setSaving]         = useState(false)
   const [actionId, setActionId]     = useState<string | null>(null)
+  const [copiedId, setCopiedId]     = useState<string | null>(null)
+
+  const copyLink = (id: string) => {
+    const url = `${window.location.origin}/consent/${id}`
+    navigator.clipboard.writeText(url)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   // Form state
   const [form, setForm] = useState({
@@ -201,7 +209,27 @@ export default function ConsentTemplatesPage() {
                       <span>สร้าง {new Date(t.created_at).toLocaleDateString("th-TH")}</span>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+                    {t.is_published && !t.is_archived && (
+                      <button
+                        onClick={() => copyLink(t.id)}
+                        style={{
+                          background: copiedId === t.id ? "rgba(45,212,191,0.2)" : "rgba(255,255,255,0.05)",
+                          color: copiedId === t.id ? TEAL : TEXT,
+                          border: `1px solid ${copiedId === t.id ? TEAL + "60" : BORDER}`,
+                          borderRadius: 6, padding: "6px 14px",
+                          fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          display: "flex", alignItems: "center", gap: 6,
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {copiedId === t.id ? (
+                          <><span>✓</span> คัดลอกแล้ว</>
+                        ) : (
+                          <><span>🔗</span> คัดลอกลิงก์</>
+                        )}
+                      </button>
+                    )}
                     {!t.is_archived && !t.is_published && (
                       <button
                         onClick={() => handleAction(t.id, "publish")}
