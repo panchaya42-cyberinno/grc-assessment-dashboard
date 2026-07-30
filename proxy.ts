@@ -31,11 +31,12 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Allow login, auth routes and API routes to pass through
+  // Allow login, auth routes, API routes, and public consent pages to pass through
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/api/")
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/consent/")
   ) {
     return supabaseResponse
   }
