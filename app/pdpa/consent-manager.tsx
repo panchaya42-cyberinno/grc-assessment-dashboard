@@ -36,6 +36,7 @@ export interface ConsentProgram {
   retention: string
   thirdParty: string
   requiresReConsent: boolean
+  consentTemplateId?: string
 }
 
 export interface WithdrawalRequest {
@@ -936,6 +937,67 @@ export function ConsentManager() {
   const [progSearch, setProgSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState<"" | ConsentProgram["status"]>("")
 
+  // Consent link state
+  const [syncingLinkId, setSyncingLinkId] = useState<string | null>(null)
+  const [copiedProgId, setCopiedProgId]   = useState<string | null>(null)
+
+  async function copyConsentLink(p: ConsentProgram, e: React.MouseEvent) {
+    e.stopPropagation()
+    setSyncingLinkId(p.id)
+    let templateId = p.consentTemplateId
+    if (!templateId) {
+      // สร้าง Supabase consent template จาก CSP program
+      const res = await fetch("/api/consent-mgmt/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: p.id + "-" + p.name.replace(/\s+/g, "-").toLowerCase(),
+          name_th: p.name,
+          name_en: p.nameEn || p.name,
+          category: p.group,
+          description: p.purpose,
+          header_th: p.name,
+          body_th: p.purpose || `ขอความยินยอมสำหรับ: ${p.name}`,
+          footer_th: `คุณสามารถถอนความยินยอมได้ทุกเวลา กรุณาติดต่อ ${p.owner || "ผู้ควบคุมข้อมูล"}`,
+          data_controller: p.owner,
+          default_expiry_days: p.expiryDate ? Math.ceil((new Date(p.expiryDate).getTime() - Date.now()) / 86400000) : null,
+          purposes: [{
+            code: p.id,
+            title_th: p.name,
+            title_en: p.nameEn || p.name,
+            description_th: p.purpose,
+            legal_basis: p.legalBasis.includes("19") ? "consent" : "legitimate_interest",
+            data_types: p.dataTypes ? p.dataTypes.split(",").map(s => s.trim()) : [],
+            retention_days: null,
+            is_required: true,
+            third_parties: p.thirdParty ? [p.thirdParty] : [],
+          }],
+        }),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        templateId = json.id
+        // บันทึก templateId ลง localStorage
+        const updated = programs.map(pr => pr.id === p.id ? { ...pr, consentTemplateId: templateId! } : pr)
+        setPrograms(updated)
+        saveData(PROG_KEY, updated)
+        // Publish ทันที
+        await fetch("/api/consent-mgmt/templates", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, action: "publish" }),
+        })
+      }
+    }
+    setSyncingLinkId(null)
+    if (templateId) {
+      const url = `${window.location.origin}/consent/${templateId}`
+      await navigator.clipboard.writeText(url)
+      setCopiedProgId(p.id)
+      setTimeout(() => setCopiedProgId(null), 2500)
+    }
+  }
+
   // Withdrawals state
   const [wdModal, setWdModal]       = useState(false)
   const [editWd, setEditWd]         = useState<WithdrawalRequest | undefined>()
@@ -1149,6 +1211,28 @@ export function ConsentManager() {
                       <div className={cn("h-full rounded-full transition-all", rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-500" : "bg-red-500")}
                         style={{ width: `${rate}%` }} />
                     </div>
+                    {(p.status === "active") && (
+                      <div className="mt-3 flex justify-end" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={e => copyConsentLink(p, e)}
+                          disabled={syncingLinkId === p.id}
+                          className={cn(
+                            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
+                            copiedProgId === p.id
+                              ? "border-teal-400 bg-teal-50 text-teal-700"
+                              : "border-border bg-muted/30 text-muted-foreground hover:border-teal-300 hover:text-teal-700 hover:bg-teal-50/40"
+                          )}
+                        >
+                          {syncingLinkId === p.id ? (
+                            <><RefreshCw className="h-3 w-3 animate-spin" /> กำลังสร้างลิงก์...</>
+                          ) : copiedProgId === p.id ? (
+                            <><Check className="h-3 w-3" /> คัดลอกลิงก์แล้ว</>
+                          ) : (
+                            <><Link2 className="h-3 w-3" /> คัดลอกลิงก์ Consent</>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
