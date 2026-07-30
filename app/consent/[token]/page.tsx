@@ -61,6 +61,7 @@ export default function ConsentPage() {
   const [sessionToken, setSession]    = useState("")
   const [maskedEmail, setMaskedEmail] = useState("")
   const [otp, setOtp]                 = useState("")
+  const [devOtp, setDevOtp]           = useState("")
   const [otpErr, setOtpErr]           = useState("")
   const [sending, setSending]         = useState(false)
   const [verifying, setVerifying]     = useState(false)
@@ -126,6 +127,7 @@ export default function ConsentPage() {
     if (json.success) {
       setSession(json.sessionToken)
       setMaskedEmail(json.maskedEmail)
+      if (json.devOtp) setDevOtp(json.devOtp)
       setStep("otp")
     }
   }
@@ -231,6 +233,18 @@ export default function ConsentPage() {
           </p>
           <p style={{ color: MUTED, fontSize: 12, margin: "4px 0 0" }}>รหัสหมดอายุใน 10 นาที</p>
         </div>
+        {devOtp && (
+          <div style={{
+            background: "#7c3aed22", border: "1px solid #7c3aed88",
+            borderRadius: 10, padding: 14, marginBottom: 20, textAlign: "center",
+          }}>
+            <p style={{ color: "#a78bfa", fontSize: 11, fontWeight: 700, margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>
+              🛠 Dev Mode — ยังไม่ได้ตั้งค่า RESEND_API_KEY
+            </p>
+            <p style={{ color: "#c4b5fd", fontSize: 13, margin: "0 0 4px" }}>รหัส OTP ของคุณคือ:</p>
+            <span style={{ fontSize: 30, fontWeight: 900, letterSpacing: 10, color: "#f5f3ff" }}>{devOtp}</span>
+          </div>
+        )}
         <label style={{ display: "block", fontSize: 12, color: MUTED, marginBottom: 6, fontWeight: 600 }}>
           กรอกรหัส OTP 6 หลัก
         </label>
