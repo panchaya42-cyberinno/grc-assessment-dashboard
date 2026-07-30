@@ -939,14 +939,13 @@ export function ConsentManager() {
 
   // Consent link state
   const [syncingLinkId, setSyncingLinkId] = useState<string | null>(null)
-  const [copiedProgId, setCopiedProgId]   = useState<string | null>(null)
+  const [consentLinkProg, setConsentLinkProg] = useState<{ id: string; url: string } | null>(null)
 
-  async function copyConsentLink(p: ConsentProgram, e: React.MouseEvent) {
+  async function getConsentLink(p: ConsentProgram, e: React.MouseEvent) {
     e.stopPropagation()
     setSyncingLinkId(p.id)
     let templateId = p.consentTemplateId
     if (!templateId) {
-      // สร้าง Supabase consent template จาก CSP program
       const res = await fetch("/api/consent-mgmt/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -960,7 +959,7 @@ export function ConsentManager() {
           body_th: p.purpose || `ขอความยินยอมสำหรับ: ${p.name}`,
           footer_th: `คุณสามารถถอนความยินยอมได้ทุกเวลา กรุณาติดต่อ ${p.owner || "ผู้ควบคุมข้อมูล"}`,
           data_controller: p.owner,
-          default_expiry_days: p.expiryDate ? Math.ceil((new Date(p.expiryDate).getTime() - Date.now()) / 86400000) : null,
+          default_expiry_days: null,
           purposes: [{
             code: p.id,
             title_th: p.name,
@@ -977,11 +976,9 @@ export function ConsentManager() {
       if (res.ok) {
         const json = await res.json()
         templateId = json.templateId
-        // บันทึก templateId ลง localStorage
         const updated = programs.map(pr => pr.id === p.id ? { ...pr, consentTemplateId: templateId! } : pr)
         setPrograms(updated)
         saveData(PROG_KEY, updated)
-        // Publish ทันที
         await fetch("/api/consent-mgmt/templates", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -992,9 +989,7 @@ export function ConsentManager() {
     setSyncingLinkId(null)
     if (templateId) {
       const url = `${window.location.origin}/consent/${templateId}`
-      await navigator.clipboard.writeText(url)
-      setCopiedProgId(p.id)
-      setTimeout(() => setCopiedProgId(null), 2500)
+      setConsentLinkProg({ id: p.id, url })
     }
   }
 
@@ -1102,6 +1097,42 @@ export function ConsentManager() {
 
   return (
     <div className="space-y-4">
+      {/* ─── Consent Link Modal ──────────────────────────────────────────────────── */}
+      {consentLinkProg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConsentLinkProg(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[480px] mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-800">🔗 ลิงก์ Consent Form</h3>
+              <button onClick={() => setConsentLinkProg(null)} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">ส่งลิงก์นี้ให้ผู้ใช้กดยินยอม — คัดลอกแล้วส่งทาง email, Line, หรือ SMS ได้เลย</p>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={consentLinkProg.url}
+                className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 font-mono"
+                onFocus={e => e.target.select()}
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(consentLinkProg.url)
+                  const btn = document.getElementById("copy-btn-modal")
+                  if (btn) { btn.textContent = "✓ คัดลอกแล้ว!"; setTimeout(() => { if (btn) btn.textContent = "คัดลอก" }, 2000) }
+                }}
+                id="copy-btn-modal"
+                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 whitespace-nowrap"
+              >
+                คัดลอก
+              </button>
+            </div>
+            <a href={consentLinkProg.url} target="_blank" rel="noreferrer"
+              className="mt-3 flex items-center gap-1.5 text-xs text-teal-600 hover:underline">
+              <Link2 className="h-3 w-3" /> เปิดลิงก์ในแท็บใหม่
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* ─── Stats bar ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-5 gap-3">
         {[
@@ -1211,28 +1242,18 @@ export function ConsentManager() {
                       <div className={cn("h-full rounded-full transition-all", rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-500" : "bg-red-500")}
                         style={{ width: `${rate}%` }} />
                     </div>
-                    {(p.status === "active") && (
-                      <div className="mt-3 flex justify-end" onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={e => copyConsentLink(p, e)}
-                          disabled={syncingLinkId === p.id}
-                          className={cn(
-                            "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
-                            copiedProgId === p.id
-                              ? "border-teal-400 bg-teal-50 text-teal-700"
-                              : "border-border bg-muted/30 text-muted-foreground hover:border-teal-300 hover:text-teal-700 hover:bg-teal-50/40"
-                          )}
-                        >
-                          {syncingLinkId === p.id ? (
-                            <><RefreshCw className="h-3 w-3 animate-spin" /> กำลังสร้างลิงก์...</>
-                          ) : copiedProgId === p.id ? (
-                            <><Check className="h-3 w-3" /> คัดลอกลิงก์แล้ว</>
-                          ) : (
-                            <><Link2 className="h-3 w-3" /> คัดลอกลิงก์ Consent</>
-                          )}
-                        </button>
-                      </div>
-                    )}
+                    <div className="mt-3 flex justify-end" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={e => getConsentLink(p, e)}
+                        disabled={syncingLinkId === p.id}
+                        className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50/40 px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-100 transition-all"
+                      >
+                        {syncingLinkId === p.id
+                          ? <><RefreshCw className="h-3 w-3 animate-spin" /> กำลังสร้างลิงก์...</>
+                          : <><Link2 className="h-3 w-3" /> ลิงก์ Consent</>
+                        }
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -1256,6 +1277,18 @@ export function ConsentManager() {
                 <button onClick={() => setSelectedProg(null)} className="text-white/70 hover:text-white mt-0.5"><X className="h-4 w-4" /></button>
               </div>
               <div className="p-4 space-y-3">
+                {/* Get consent link */}
+                <button
+                  onClick={e => getConsentLink(selectedProg, e)}
+                  disabled={syncingLinkId === selectedProg.id}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-teal-300 bg-teal-50/40 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-all"
+                >
+                  {syncingLinkId === selectedProg.id
+                    ? <><RefreshCw className="h-4 w-4 animate-spin" /> กำลังสร้างลิงก์...</>
+                    : <><Link2 className="h-4 w-4" /> รับลิงก์ Consent</>
+                  }
+                </button>
+
                 {/* Rate ring */}
                 <div className="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
                   <div className="relative h-14 w-14 shrink-0">
